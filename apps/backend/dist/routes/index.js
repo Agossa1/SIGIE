@@ -1,0 +1,45 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.configureRoutes = void 0;
+const express_1 = require("express");
+const auth_routes_1 = require("../modules/auth/routes/auth.routes");
+const reports_routes_1 = require("../modules/reports/routes/reports.routes");
+const territory_module_1 = require("../modules/territory/territory.module");
+const missions_routes_1 = require("../modules/missions/routes/missions.routes");
+const teams_module_1 = require("../modules/teams/teams.module");
+const users_routes_1 = require("../modules/users/routes/users.routes");
+const roles_routes_1 = require("../modules/roles/routes/roles.routes");
+const gis_module_1 = require("../modules/gis/gis.module");
+const interventions_module_1 = require("../modules/interventions/interventions.module");
+const organizations_module_1 = require("../modules/organizations/organizations.module");
+const infrastructure_module_1 = require("../modules/infrastructure/infrastructure.module");
+const sanitation_module_1 = require("../modules/sanitation/sanitation.module");
+const alerts_module_1 = require("../modules/alerts/alerts.module");
+const audit_module_1 = require("../modules/audit/audit.module");
+const fieldops_module_1 = require("../modules/fieldops/fieldops.module");
+const profiles_module_1 = require("../modules/profiles/profiles.module");
+const stubs_module_1 = require("../modules/stubs/stubs.module");
+const configureRoutes = (db) => {
+    const router = (0, express_1.Router)();
+    router.use('/auth', (0, auth_routes_1.configureAuthRoutes)(db));
+    router.use('/reports', (0, reports_routes_1.configureReportsRoutes)(db));
+    router.use('/territory', (0, territory_module_1.configureTerritoryRoutes)(db));
+    router.use('/missions', (0, missions_routes_1.missionsRouter)(db));
+    router.use('/teams', (0, teams_module_1.configureTeamsRoutes)(db));
+    router.use('/users', (0, users_routes_1.usersRouter)(db));
+    router.use('/roles', (0, roles_routes_1.rolesRouter)(db));
+    router.use('/gis', (0, gis_module_1.configureGisRoutes)(db));
+    router.use('/interventions', (0, interventions_module_1.configureInterventionsRoutes)(db));
+    router.use('/organizations', (0, organizations_module_1.configureOrganizationsRoutes)(db));
+    router.use('/infrastructure', (0, infrastructure_module_1.configureInfrastructureRoutes)(db));
+    router.use('/sanitation', (0, sanitation_module_1.configureSanitationRoutes)(db));
+    router.use('/alerts', (0, alerts_module_1.configureAlertsRoutes)(db));
+    router.use('/audit', (0, audit_module_1.configureAuditRoutes)(db));
+    router.use('/fieldops', (0, fieldops_module_1.configureFieldOpsRoutes)(db));
+    router.use('/profiles', (0, profiles_module_1.configureProfilesRoutes)(db));
+    // Stubs pour modules non encore migrés (évite les 404)
+    router.use('/', (0, stubs_module_1.configureStubRoutes)(db));
+    return router;
+};
+exports.configureRoutes = configureRoutes;
+//# sourceMappingURL=index.js.map

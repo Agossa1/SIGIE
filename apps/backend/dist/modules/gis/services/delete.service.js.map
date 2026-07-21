@@ -1,0 +1,1 @@
+{"version":3,"file":"delete.service.js","sourceRoot":"","sources":["../../../../src/modules/gis/services/delete.service.ts"],"names":[],"mappings":";;;AAEA,MAAa,qBAAqB;IAC9B,YAA6B,UAAyB;QAAzB,eAAU,GAAV,UAAU,CAAe;IAAG,CAAC;IAE1D,KAAK,CAAC,OAAO,CAAC,EAAU;QACpB,OAAO,IAAI,CAAC,UAAU,CAAC,WAAW,CAAC,EAAE,CAAC,CAAC;IAC3C,CAAC;CACJ;AAND,sDAMC"}

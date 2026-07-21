@@ -1,0 +1,36 @@
+import { api } from "../../../lib/apiClient";
+import type { RoleTier } from "../../../pages/shared/roleCatalog";
+import type { RolePageId } from "../../../pages/shared/rolePages.config";
+
+export interface RoleRecord {
+    id: string;
+    code: string;
+    name: string;
+    description: string;
+    tier: RoleTier;
+    route_prefix: string;
+    dashboard_path: string;
+    page_ids: RolePageId[];
+    can_manage_users: boolean;
+    can_manage_roles: boolean;
+}
+
+export const rolesApi = {
+    getAllRoles: async (): Promise<RoleRecord[]> => {
+        try {
+            const response = await api.get<{ success: boolean; data: RoleRecord[] }>("/roles");
+            return response.data || [];
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    updateRole: async (id: string, data: Partial<RoleRecord>): Promise<RoleRecord> => {
+        try {
+            const response = await api.put<{ success: boolean; data: RoleRecord }>(`/roles/${id}`, data);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    }
+};
