@@ -4,11 +4,7 @@ import type { InterventionStats } from '../types/interventions.types';
 export class InterventionsStatsService {
     constructor(private readonly repository: InterventionsRepository) {}
 
-    async getStats(filters?: {
-        municipalityId?: string;
-        dateFrom?: string;
-        dateTo?: string;
-    }): Promise<InterventionStats> {
+    async getStats(filters?: any): Promise<InterventionStats> {
         const result = await this.repository.getStats(filters || {});
 
         return {

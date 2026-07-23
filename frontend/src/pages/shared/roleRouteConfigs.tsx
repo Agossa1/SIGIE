@@ -29,6 +29,10 @@ import PlatformLayersPage from "../adminPages/LayersPage";
 // Custom Dashboard pages
 import MayorDashboardPage from "../mayor/DashboardPage";
 import TechnicienDashboardPage from "../techniciens/DashboardPage";
+import SgdsDashboardPage from "../sgds/SgdsDashboardPage";
+import SgdsReportsPage from "../sgds/SgdsReportsPage";
+import { SanitationDashboard } from "../../feature/sanitation/components/SanitationDashboard";
+import SupervisorDashboardPage from "../supervisor/SupervisorDashboardPage";
 
 export type RoleRouteConfig = {
   path: string;
@@ -39,6 +43,7 @@ export type RoleRouteConfig = {
 const renderGenericPage = (pageId: RolePageId, folder: string): ReactElement | null => {
   switch (pageId) {
     case "dashboard":
+      if (folder === 'sgds') return <SgdsDashboardPage />;
       return <RoleTerritorialDashboard config={ROLE_FOLDER_CONFIGS.find(c => c.folder === folder)!} />;
     case "fieldOps":
       return <SharedFieldOpsPage folder={folder} />;
@@ -70,6 +75,22 @@ ROLE_FOLDER_CONFIGS.forEach((config) => {
     const meta = ROLE_PAGE_DEFINITIONS[pageId];
     const path = `/${config.routePrefix}/${meta.routeSuffix}`;
 
+    // Handle sgds overrides — wrapper avec le sidebar
+    if (config.folder === "sgds") {
+        if (pageId === "dashboard") {
+            routes.push({ path, roles: config.roles, element: <RoleTerritorialPageShell folder="sgds" pageId="dashboard"><SgdsDashboardPage /></RoleTerritorialPageShell> });
+            return;
+        }
+        if (pageId === "agentReports") {
+            routes.push({ path, roles: config.roles, element: <RoleTerritorialPageShell folder="sgds" pageId="agentReports"><SgdsReportsPage /></RoleTerritorialPageShell> });
+            return;
+        }
+        if (pageId === "sanitation") {
+            routes.push({ path, roles: config.roles, element: <RoleTerritorialPageShell folder="sgds" pageId="sanitation"><SanitationDashboard /></RoleTerritorialPageShell> });
+            return;
+        }
+    }
+
     // Handle adminPages overrides
     if (config.folder === "adminPages") {
       let element: ReactElement | null = null;
@@ -97,14 +118,18 @@ ROLE_FOLDER_CONFIGS.forEach((config) => {
       return;
     }
 
-    // Handle custom dashboard overrides
-    if (pageId === "dashboard") {
+    // Handle custom dashboard overrides (non-sgds)
+    if (pageId === "dashboard" && config.folder !== "sgds") {
       if (config.folder === "mayor") {
         routes.push({ path, roles: config.roles, element: <MayorDashboardPage /> });
         return;
       }
       if (config.folder === "techniciens") {
-        routes.push({ path, roles: config.roles, element: <TechnicienDashboardPage /> });
+        routes.push({ path, roles: config.roles, element: <RoleTerritorialPageShell folder="techniciens" pageId="dashboard"><TechnicienDashboardPage /></RoleTerritorialPageShell> });
+        return;
+      }
+      if (config.folder === "supervisor") {
+        routes.push({ path, roles: config.roles, element: <RoleTerritorialPageShell folder="supervisor" pageId="dashboard"><SupervisorDashboardPage /></RoleTerritorialPageShell> });
         return;
       }
     }

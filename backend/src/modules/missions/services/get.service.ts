@@ -3,7 +3,7 @@ import { Mission, PaginatedResponse } from '../types/missions.types';
 import { applyTerritorialFilter } from '../../../shared/middlewares/territorialFilter.middleware';
 import type { TokenPayload } from '../../auth/types/auth.types';
 
-const FIELD_ROLES = ['technician', 'team_leader', 'supervisor', 'field_agent'];
+const FIELD_ROLES = ['technician', 'team_leader', 'field_agent'];
 const ADMIN_ROLES = ['super_admin', 'platform_admin'];
 
 export class GetMissionsService {

@@ -69,6 +69,19 @@ export const missionsRtkApi = baseApi.injectEndpoints({
             transformResponse: (response: { success: boolean; data: MissionChecklist[] }) => response.data,
             providesTags: (_result, _error, id) => [{ type: 'Mission', id }],
         }),
+
+        // Pipeline : Validation finale de la mission par DST/SGDS
+        validateMission: builder.mutation<
+            { success: boolean; message: string; data: MissionDetails },
+            { id: string; closureNote?: string; actualCost?: number }
+        >({
+            query: ({ id, ...body }) => ({
+                url: `/missions/${id}/validate`,
+                method: "PATCH",
+                body,
+            }),
+            invalidatesTags: (_result, _error, { id }) => [{ type: 'Mission', id }, { type: 'Mission', id: 'LIST' }],
+        }),
     }),
 });
 
@@ -81,4 +94,5 @@ export const {
     useAssignMissionUsersMutation,
     useAddMissionReportMutation,
     useGetMissionChecklistQuery,
+    useValidateMissionMutation,
 } = missionsRtkApi;

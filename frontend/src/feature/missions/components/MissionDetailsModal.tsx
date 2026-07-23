@@ -7,6 +7,11 @@ import { fetchUsers } from "../../users/services/users.thunk";
 import { selectAllUsers } from "../../users/services/users.selectors";
 import { selectAllReports } from "../../reports/services/reports.selectors";
 import { StatusBadge } from "../../reports/components/StatusBadge";
+import { useValidateMissionMutation } from "../services/missions.rtk";
+import { selectCurrentUser } from "../../auth/services/auth.selectors";
+import { User_Role } from "../../auth/services/auth.types";
+import { useCreateInterventionMutation } from "../../interventions/services/interventions.rtk";
+import { CreateInterventionModal } from "../../interventions/components/CreateInterventionModal";
 
 interface MissionDetailsModalProps {
   missionId: string;
@@ -27,7 +32,11 @@ export const MissionDetailsModal: React.FC<MissionDetailsModalProps> = ({ missio
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState(false);
   const users = useAppSelector(selectAllUsers);
+  const [validateMission] = useValidateMissionMutation();
+  const currentUser = useAppSelector(selectCurrentUser);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [showCreateIntervention, setShowCreateIntervention] = useState(false);
+  const [createIntervention] = useCreateInterventionMutation();
 
   useEffect(() => {
     if (missionId) {
@@ -143,6 +152,21 @@ export const MissionDetailsModal: React.FC<MissionDetailsModalProps> = ({ missio
 
   const assignedUserIds = mission.assignments?.map(a => a.userId) || [];
   const unassignedUsers = users.filter(u => !assignedUserIds.includes(u.id));
+
+  const userRoles = currentUser?.roles || [];
+  const canValidateMission = userRoles.includes(User_Role.SUPER_ADMIN) || userRoles.includes(User_Role.PLATFORM_ADMIN) || userRoles.includes(User_Role.DST_MANAGER) || userRoles.includes(User_Role.SGDS_MANAGER);
+  const isValidationReady = mission.status === MissionStatus.VALIDATED_BY_SUPERVISOR || mission.status === MissionStatus.COMPLETED;
+
+  const handleValidateMission = async () => {
+    if (!confirm('Valider définitivement cette mission ? Le signalement lié sera marqué comme résolu.')) return;
+    try {
+      await validateMission({ id: missionId }).unwrap();
+      dispatch(fetchMissionById(missionId));
+      onRefresh();
+    } catch (err: any) {
+      alert(err?.message || 'Erreur lors de la validation');
+    }
+  };
 
   // Signalement source lié à cette mission
   const linkedReport = mission.reportId ? allReports.find(r => r.id === mission.reportId) : null;
@@ -284,11 +308,31 @@ export const MissionDetailsModal: React.FC<MissionDetailsModalProps> = ({ missio
                 </div>
 
                 <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-400 mb-2">Statut & Équipe</h3>
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 block mb-1">Changer le statut</label>
+                    <div>
+                        <h3 className="text-sm font-medium text-gray-400 mb-2">Statut & Équipe</h3>
+                        <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+                          <button
+                            onClick={() => setShowCreateIntervention(true)}
+                            className="w-full px-4 py-2.5 text-sm font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Créer une intervention liée
+                          </button>
+                          {canValidateMission && isValidationReady && (
+                            <button
+                              onClick={handleValidateMission}
+                              className="w-full px-4 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Valider définitivement (DST/SGDS)
+                            </button>
+                          )}
+                          <div>
+                            <label className="text-sm font-medium text-gray-500 block mb-1">Changer le statut</label>
                         <select 
                           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-emerald-500 transition-colors cursor-pointer"
                           value={mission.status}
@@ -515,6 +559,17 @@ export const MissionDetailsModal: React.FC<MissionDetailsModalProps> = ({ missio
 
         </div>
       </div>
+      {showCreateIntervention && (
+        <CreateInterventionModal
+          missionId={missionId}
+          onClose={() => setShowCreateIntervention(false)}
+          onSubmit={async (data) => {
+            await createIntervention(data).unwrap();
+            dispatch(fetchMissionById(missionId));
+            onRefresh();
+          }}
+        />
+      )}
     </div>
   );
 };

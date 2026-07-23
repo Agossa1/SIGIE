@@ -6,13 +6,15 @@ import { CreateMissionModal } from "./CreateMissionModal"
 import { MissionDetailsModal } from "./MissionDetailsModal"
 import { MissionsKanban } from "./MissionsKanban"
 import { fetchMissions, createMission, updateMissionStatus } from "../services/missions.thunk"
-import { selectAllMissions, selectMissionsLoading } from "../services/missions.selectors"
+import { selectMissionsLoading, selectAllMissions } from "../services/missions.selectors"
 import { useAuthRoles } from "../../auth/hooks/useAuthRoles"
 import { User_Role } from "../../auth/services/auth.types"
+import { useFilteredMissions } from "../hooks/useFilteredMissions"
 
 export const MissionsDashboard = () => {
+  const rawMissions = useAppSelector(selectAllMissions) ?? []
   const dispatch = useAppDispatch()
-  const missions = useAppSelector(selectAllMissions) ?? []
+  const missions = useFilteredMissions(rawMissions)
   const loading = useAppSelector(selectMissionsLoading)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null)

@@ -12,19 +12,23 @@ const SharedAlertsPage = ({ folder }: { folder: string }) => (
       relatedLinks={[{ pageId: "gisMap", label: "Zones à risque" }, { pageId: "infrastructure", label: "Ouvrages & canaux" }]}
     >
       
-      <section className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 space-y-3">
-        <h3 className="text-sm font-medium text-gray-900">Alertes actives (aperçu)</h3>
-        <ul className="space-y-2">
+      <section className="bg-white border border-gray-200 rounded overflow-hidden  ">
+        <div className="p-4 sm:p-5 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">Alertes actives (aperçu)</h3>
+        </div>
+        <ul className="divide-y divide-gray-50">
           {[
             { id: "a1", label: "Risque de crue — zone littorale", level: "Élevé", date: "22 mai 2026" },
             { id: "a2", label: "Pluies intenses prévues", level: "Vigilance", date: "22 mai 2026" },
           ].map((a) => (
-            <li key={a.id} className="p-3 rounded-xl bg-sky-50 border border-sky-100">
-              <p className="text-sm font-medium text-gray-900">{a.label}</p>
-              <div className="flex justify-between mt-1">
-                <span className="text-sm font-medium text-sky-700">{a.level}</span>
-                <span className="text-sm text-gray-400">{a.date}</span>
+            <li key={a.id} className="p-4 sm:px-5 sm:py-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{a.label}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{a.date}</p>
               </div>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg border ${a.level === 'Élevé' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                {a.level}
+              </span>
             </li>
           ))}
         </ul>

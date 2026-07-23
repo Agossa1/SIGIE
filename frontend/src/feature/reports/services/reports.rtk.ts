@@ -60,6 +60,32 @@ export const reportsRtkApi = baseApi.injectEndpoints({
             query: ({ reportId, data }) => ({ url: `/reports/${reportId}/assign`, method: "POST", body: data }),
             invalidatesTags: [{ type: 'Report', id: 'LIST' }],
         }),
+
+        // Pipeline : Chef de brigade valide/rejette/demande correction
+        validateByTeam: builder.mutation<
+            { success: boolean; message: string },
+            { reportId: string; action: 'validate' | 'reject' | 'request_revision'; comment?: string }
+        >({
+            query: ({ reportId, action, comment }) => ({
+                url: `/reports/${reportId}/validate-by-team`,
+                method: "PATCH",
+                body: { action, comment },
+            }),
+            invalidatesTags: (_result, _error, { reportId }) => [{ type: 'Report', id: reportId }, { type: 'Report', id: 'LIST' }],
+        }),
+
+        // Pipeline : Superviseur recommande et aiguille vers DST/SGDS
+        recommendReport: builder.mutation<
+            { success: boolean; message: string },
+            { reportId: string; recommendation: string; suggestedMissionType?: string; suggestedPriority?: string; estimatedBudget?: number; urgentFlag?: boolean }
+        >({
+            query: ({ reportId, ...data }) => ({
+                url: `/reports/${reportId}/recommend`,
+                method: "PATCH",
+                body: data,
+            }),
+            invalidatesTags: (_result, _error, { reportId }) => [{ type: 'Report', id: reportId }, { type: 'Report', id: 'LIST' }],
+        }),
     }),
 });
 
@@ -71,4 +97,6 @@ export const {
     useDeleteReportMutation,
     useAddReportCommentMutation,
     useAssignReportMutation,
+    useValidateByTeamMutation,
+    useRecommendReportMutation,
 } = reportsRtkApi;

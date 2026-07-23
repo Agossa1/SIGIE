@@ -29,6 +29,8 @@ export interface TerritorialMapProps {
   missionsData?: MissionPin[]
   /** Données GPS des équipes terrain à afficher (optionnel). */
   teamsData?: TeamLocation[]
+  /** Données des interventions (optionnel). */
+  interventionsData?: any[]
   onIncidentClick?: (pin: IncidentPin) => void
   onMissionClick?: (pin: MissionPin) => void
   /** Activer les couches d'infrastructure OSM (routes, cours d'eau, zones inondables). */
@@ -48,6 +50,7 @@ const TerritorialMap = ({
   incidentsData,
   missionsData,
   teamsData,
+  interventionsData,
   onIncidentClick,
   onMissionClick,
   showInfraLayers = false,
@@ -86,7 +89,7 @@ const TerritorialMap = ({
             <button
               type="button"
               onClick={() => setIsExpanded(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 transition-all shadow-sm"
             >
               Agrandir
             </button>
@@ -108,6 +111,7 @@ const TerritorialMap = ({
             hideLegend={!showLayerToggles}
             incidentsData={incidentsData}
             missionsData={missionsData}
+            interventionsData={interventionsData}
             teamsData={teamsData}
             onIncidentClick={onIncidentClick}
             onMissionClick={onMissionClick}
@@ -121,7 +125,7 @@ const TerritorialMap = ({
           <button
             type="button"
             onClick={() => setIsExpanded(true)}
-            className="sm:hidden w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600"
+            className="sm:hidden w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
           >
             Agrandir la carte
           </button>
@@ -152,6 +156,7 @@ const TerritorialMap = ({
                   hideLegend={!showLayerToggles}
                   incidentsData={incidentsData}
                   missionsData={missionsData}
+                  interventionsData={interventionsData}
                   teamsData={teamsData}
                   onIncidentClick={onIncidentClick}
                   onMissionClick={onMissionClick}

@@ -10,7 +10,7 @@ import { InterventionLogsService } from './services/logs.service';
 import { GetAllInterventionsController } from './controllers/get-all.controller';
 import { GetInterventionsByMissionController } from './controllers/get-by-mission.controller';
 import { CreateInterventionController } from './controllers/create.controller';
-import { UpdateInterventionStatusController } from './controllers/update-status.controller';
+import { UpdateInterventionController } from './controllers/update.controller';
 import { GetInterventionsStatsController } from './controllers/stats.controller';
 import { GetTraceabilityController } from './controllers/traceability.controller';
 import { ExportInterventionsCSVController } from './controllers/export.controller';
@@ -34,7 +34,7 @@ export function configureInterventionsRoutes(db: PostgresDatabase): Router {
     const getAllCtrl = new GetAllInterventionsController(repository);
     const getByMissionCtrl = new GetInterventionsByMissionController(repository);
     const createCtrl = new CreateInterventionController(service);
-    const updateStatusCtrl = new UpdateInterventionStatusController(service);
+    const updateCtrl = new UpdateInterventionController(service);
     const statsCtrl = new GetInterventionsStatsController(statsService);
     const traceabilityCtrl = new GetTraceabilityController(traceabilityService);
     const exportCtrl = new ExportInterventionsCSVController(exportService);
@@ -51,7 +51,7 @@ export function configureInterventionsRoutes(db: PostgresDatabase): Router {
     router.get('/', getAllCtrl.handle);
     router.get('/mission/:missionId', getByMissionCtrl.handle);
     router.post('/', requireRole(['super_admin', 'platform_admin', 'supervisor']), createCtrl.handle);
-    router.patch('/:id/status', updateStatusCtrl.handle);
+    router.patch('/:id', updateCtrl.handle);
 
     // Logs (journal d'intervention)
     router.get('/:id/logs', logsCtrl.getLogs);

@@ -16,7 +16,7 @@ export const createServer = async (db: PostgresDatabase) => {
     // Rate limiting — protection anti brute-force sur /api/auth/login
     const authLimiter = rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 200, // 10 tentatives max par IP
+        max: 500, // 10 tentatives max par IP
         message: { success: false, message: 'Trop de tentatives de connexion. Réessayez dans 15 minutes.' },
         standardHeaders: true,
         legacyHeaders: false,
@@ -25,7 +25,7 @@ export const createServer = async (db: PostgresDatabase) => {
     // Rate limiting global — 200 requêtes/min par IP
     const globalLimiter = rateLimit({
         windowMs: 60 * 1000,
-        max: 200,
+        max: 500,
         message: { success: false, message: 'Trop de requêtes. Ralentissez.' },
         standardHeaders: true,
         legacyHeaders: false,
@@ -40,7 +40,7 @@ export const createServer = async (db: PostgresDatabase) => {
     app.use('/uploads', express.static('uploads'));
 
     app.use(express.json({ limit: '10mb' }));
-    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '500mb' }));
     app.use(helmet({
         crossOriginResourcePolicy: { policy: "cross-origin" },
         contentSecurityPolicy: {

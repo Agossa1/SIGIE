@@ -53,32 +53,33 @@ const TerritorialPanel = ({
       <TerritorialOverview
         scopeLabel={scope.scopeLabel}
         perimeterTag={scope.perimeterTag}
-        signalements={stats.total}
       />
 
-      <p className="text-sm font-medium text-gray-600 bg-emerald-50/60 border border-emerald-100 rounded-xl px-4 py-3">
-        {intro}
-      </p>
+      <div className="bg-emerald-50/50 border border-emerald-100/50 rounded px-4 py-3">
+        <p className="text-sm font-medium text-emerald-800">
+          {intro}
+        </p>
+      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="bg-white border border-gray-100 rounded-xl p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 bg-white border border-gray-200 rounded  overflow-hidden">
+        <div className="p-5">
           <p className="text-sm font-medium text-gray-500">Signalements liés</p>
-          <p className="text-2xl font-medium text-gray-900 mt-1">{isLoading ? "…" : kpiValue}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-1">{isLoading ? "…" : kpiValue}</p>
         </div>
-        <div className="bg-white border border-gray-100 rounded-xl p-4">
+        <div className="p-5">
           <p className="text-sm font-medium text-gray-500">En attente</p>
-          <p className="text-2xl font-medium text-amber-700 mt-1">{isLoading ? "…" : stats.pending}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-1">{isLoading ? "…" : stats.pending}</p>
         </div>
-        <div className="bg-white border border-gray-100 rounded-xl p-4 col-span-2 sm:col-span-1">
+        <div className="p-5 col-span-2 sm:col-span-1 border-t sm:border-t-0 bg-gray-50/30">
           <p className="text-sm font-medium text-gray-500">Résolus</p>
-          <p className="text-2xl font-medium text-emerald-700 mt-1">{isLoading ? "…" : stats.resolved}</p>
+          <p className="text-2xl font-semibold text-emerald-600 mt-1">{isLoading ? "…" : stats.resolved}</p>
         </div>
       </div>
 
       {children}
 
       {filtered.length > 0 && (
-        <section className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+        <section className="bg-white border border-gray-200 rounded overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-900">Signalements associés</h3>
             <Link
@@ -108,7 +109,7 @@ const TerritorialPanel = ({
       )}
 
       {demoItems.length > 0 && (
-        <section className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+        <section className="bg-white border border-gray-200 rounded overflow-hidden">
           <div className="p-4 border-b border-gray-100">
             <h3 className="text-sm font-medium text-gray-900">Suivi opérationnel (aperçu)</h3>
             <p className="text-sm text-gray-400 mt-0.5">Données de démonstration en attendant le branchement API complet</p>

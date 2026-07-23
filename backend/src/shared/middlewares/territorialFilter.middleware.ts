@@ -9,8 +9,7 @@ import type { TokenPayload } from '../../modules/auth/types/auth.types';
  * 
  * Règles :
  * - super_admin, platform_admin, ministry → aucun filtre (voient tout)
- * - technician → limité à ses propres créations (createdBy)
- * - team_leader, supervisor → commune ou région
+ * - technician, team_leader, supervisor → commune ou région
  * - mayor, dst_manager → commune uniquement
  * - prefecture_director, sgds_manager → région uniquement
  * - viewer → commune ou région
@@ -32,11 +31,6 @@ export function applyTerritorialFilter(user: TokenPayload): {
         return filters;
     }
 
-    // Technicien : ne voit que ses propres données
-    if (roles.includes('technician')) {
-        filters.createdBy = user.id;
-        return filters;
-    }
 
     // Rôles avec périmètre commune
     if (roles.includes('mayor') || roles.includes('dst_manager')) {

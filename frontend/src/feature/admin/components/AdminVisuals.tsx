@@ -4,16 +4,19 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+  PointElement,
+  LineElement,
   ArcElement,
+  Filler,
   Tooltip,
   Legend,
 } from 'chart.js'
-import { Bar, Doughnut } from 'react-chartjs-2'
+import { Line, Doughnut } from 'react-chartjs-2'
 import type { TechnicianReport } from '../../reports/services/reports.types'
 import type { Mission } from '../../missions/services/missions.types'
 
 // ── Enregistrement Chart.js ────────────────────────────────────────────────
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend)
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface AdminVisualsData {
@@ -49,9 +52,7 @@ function aggregateReportsByMonth(reports: TechnicianReport[], categoryFilter?: s
   reports.forEach((r) => {
     if (!r.createdAt) return
     if (categoryFilter && categoryFilter !== 'all') {
-      // Inondation/Drainage = flooding OR drainage
       if (categoryFilter === 'drainage' && r.issueCategory !== 'drainage' && r.issueCategory !== 'flooding') return
-      // Autres
       if (categoryFilter !== 'drainage' && r.issueCategory !== categoryFilter) return
     }
     const d = new Date(r.createdAt)
@@ -62,75 +63,108 @@ function aggregateReportsByMonth(reports: TechnicianReport[], categoryFilter?: s
   const sortedKeys = Object.keys(counts).sort()
   return {
     labels: sortedKeys.map((k) => {
-      const month = parseInt(k.split('-')[1], 10)
-
-      const dayLabel = `${String(sortedKeys.indexOf(k) + 1).padStart(2, '0')} ${MONTHS_SHORT[month]?.toLowerCase() ?? ''}`
-      return dayLabel
+      const [, monthStr] = k.split('-')
+      const month = parseInt(monthStr, 10)
+      return MONTHS_SHORT[month] ?? ''
     }),
     values: sortedKeys.map((k) => counts[k]),
   }
 }
 
+// Tab colors map
+const TAB_CONFIG = {
+  all:      { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: 'Tous',          activeClass: 'bg-emerald-500 text-white' },
+  waste:    { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Déchets',       activeClass: 'bg-amber-500 text-white' },
+  drainage: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', label: 'Inondation',    activeClass: 'bg-blue-500 text-white' },
+  road:     { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', label: 'Infrastructures',activeClass: 'bg-purple-500 text-white' },
+} as const
+
+type TabKey = keyof typeof TAB_CONFIG
+
 // ── Composant principal ────────────────────────────────────────────────────
 const AdminVisuals = ({ stats }: AdminVisualsProps) => {
-  const [activeTab, setActiveTab] = useState<'all' | 'waste' | 'drainage' | 'road'>('all')
+  const [activeTab, setActiveTab] = useState<TabKey>('all')
   const monthly = useMemo(() => aggregateReportsByMonth(stats.reports, activeTab), [stats.reports, activeTab])
+
+  const { color, bg } = TAB_CONFIG[activeTab]
 
   // KPI metrics sous le graphique
   const kpiList = [
-    { label: 'Signalements (Total)', val: stats.totalReports.toString(), trend: 'Global', trendUp: true },
-    { label: 'Missions Terminées', val: stats.completedMissions.toString(), trend: 'Terrain', trendUp: true },
-    { label: 'Inondations signalées', val: stats.reportsByCategory.drainage?.toString() || '0', trend: 'Urgence', trendUp: false },
-    { label: 'Déchets', val: stats.reportsByCategory.waste.toString(), trend: 'Salubrité', trendUp: true },
+    { label: 'Signalements', val: stats.totalReports.toString(), trend: 'Total global', trendUp: true, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Missions terminées', val: stats.completedMissions.toString(), trend: 'Sur le terrain', trendUp: true, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Inondations', val: stats.reportsByCategory.drainage?.toString() || '0', trend: 'Urgence', trendUp: false, color: 'text-rose-500', bg: 'bg-rose-50' },
+    { label: 'Déchets', val: stats.reportsByCategory.waste.toString(), trend: 'Salubrité', trendUp: true, color: 'text-amber-600', bg: 'bg-amber-50' },
   ]
 
-  // Données donut "Répartition par Catégorie"
   const catData = [
     stats.reportsByCategory.waste,
     stats.reportsByCategory.drainage,
     stats.reportsByCategory.road,
-    stats.reportsByCategory.other
+    stats.reportsByCategory.other,
   ]
   const catTotal = stats.totalReports
 
-  // Données bar chart (On utilise les données réelles mensuelles pour le volume global)
-  // Comme on a qu'une série de valeurs dans monthly.values pour l'instant, on l'affiche simplement.
-  const volumeData = monthly.values
+  const catCategories = [
+    { label: 'Déchets', color: '#f59e0b', value: stats.reportsByCategory.waste },
+    { label: 'Inondation/Drainage', color: '#3b82f6', value: stats.reportsByCategory.drainage },
+    { label: 'Infrastructures', color: '#8b5cf6', value: stats.reportsByCategory.road },
+    { label: 'Autres', color: '#94a3b8', value: stats.reportsByCategory.other },
+  ].filter(c => c.value > 0)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-      {/* ── Audience Overview (8/12) ── */}
-      <div className="lg:col-span-8 bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col">
+      {/* ── Évolution des signalements (8/12) ── */}
+      <div className="lg:col-span-8 bg-white border border-gray-100 rounded-2xl p-6 flex flex-col">
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-semibold text-gray-800">Évolution des signalements</h3>
-          <div className="flex items-center gap-3 text-sm font-medium text-gray-500">
-            <button onClick={() => setActiveTab('all')} className={activeTab === 'all' ? "text-gray-900 font-semibold border-b border-gray-900 pb-0.5" : "hover:text-gray-800 transition-colors pb-0.5"}>Tous</button>
-            <button onClick={() => setActiveTab('waste')} className={activeTab === 'waste' ? "text-amber-600 font-semibold border-b border-amber-600 pb-0.5" : "hover:text-amber-600 transition-colors pb-0.5"}>Déchets</button>
-            <button onClick={() => setActiveTab('drainage')} className={activeTab === 'drainage' ? "text-blue-600 font-semibold border-b border-blue-600 pb-0.5" : "hover:text-blue-600 transition-colors pb-0.5"}>Inondation</button>
-            <button onClick={() => setActiveTab('road')} className={activeTab === 'road' ? "text-purple-600 font-semibold border-b border-purple-600 pb-0.5" : "hover:text-purple-600 transition-colors pb-0.5"}>Infrastructures</button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-sm font-bold text-gray-800">Évolution des signalements</h3>
+            <p className="text-xs text-gray-400 mt-0.5">12 derniers mois</p>
+          </div>
+          {/* Tabs */}
+          <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-xl p-1">
+            {(Object.entries(TAB_CONFIG) as [TabKey, typeof TAB_CONFIG[TabKey]][]).map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === key
+                    ? cfg.activeClass + ' shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {cfg.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Bar Chart */}
-        <div className="flex-1 min-h-[220px] mt-4 relative">
-          <Bar
+        {/* Area Chart */}
+        <div className="flex-1 min-h-[200px]">
+          <Line
             data={{
               labels: monthly.labels,
               datasets: [
                 {
-                  label: 'Volume de signalements',
-                  data: volumeData,
-                  backgroundColor: activeTab === 'waste' ? '#f59e0b' : activeTab === 'drainage' ? '#3b82f6' : activeTab === 'road' ? '#8b5cf6' : '#10b981',
-                  borderRadius: 4,
-                  barPercentage: 0.6,
+                  label: 'Signalements',
+                  data: monthly.values,
+                  borderColor: color,
+                  backgroundColor: bg,
+                  borderWidth: 2.5,
+                  pointBackgroundColor: color,
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
+                  fill: true,
+                  tension: 0.4,
                 }
               ],
             }}
             options={{
               responsive: true,
               maintainAspectRatio: false,
+              interaction: { mode: 'index', intersect: false },
               plugins: {
                 tooltip: {
                   backgroundColor: '#fff',
@@ -142,78 +176,57 @@ const AdminVisuals = ({ stats }: AdminVisualsProps) => {
                   borderWidth: 1,
                   boxPadding: 4,
                 },
-                legend: {
-                  display: true,
-                  position: 'top',
-                  align: 'start',
-                  labels: {
-                    usePointStyle: true,
-                    pointStyle: 'circle',
-                    boxWidth: 7,
-                    boxHeight: 7,
-                    color: '#64748b',
-                    font: { size: 13 },
-                    padding: 16,
-                  },
-                },
+                legend: { display: false },
               },
               scales: {
                 x: {
                   grid: { display: false },
-                  ticks: { color: '#94a3b8', font: { size: 13 } },
+                  ticks: { color: '#94a3b8', font: { size: 12 } },
                   border: { display: false },
                 },
                 y: {
                   grid: { color: '#f1f5f9' },
                   ticks: {
                     color: '#94a3b8',
-                    font: { size: 13 },
-                    maxTicksLimit: 6,
-                    stepSize: 20,
+                    font: { size: 12 },
+                    maxTicksLimit: 5,
+                    stepSize: 1,
                   },
                   border: { display: false },
+                  beginAtZero: true,
                 },
               },
             }}
           />
         </div>
 
-        {/* KPI row sous le graphique */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-5 border-t border-gray-100">
+        {/* KPI row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-gray-100">
           {kpiList.map((kpi, i) => (
-            <div key={i} className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium text-gray-500">{kpi.label}</span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-semibold text-gray-900">{kpi.val}</span>
-                <span
-                  className={`text-sm font-bold ${
-                    kpi.trendUp ? 'text-emerald-600' : 'text-rose-500'
-                  }`}
-                >
-                  {kpi.trendUp ? '↑' : '↓'} {kpi.trend}
-                </span>
-              </div>
+            <div key={i} className={`rounded-xl p-3 ${kpi.bg}`}>
+              <p className="text-xs text-gray-500 font-medium mb-1">{kpi.label}</p>
+              <p className={`text-2xl font-bold ${kpi.color}`}>{kpi.val}</p>
+              <p className={`text-xs font-semibold mt-1 ${kpi.color} flex items-center gap-1`}>
+                <span>{kpi.trendUp ? '↑' : '↓'}</span>
+                <span>{kpi.trend}</span>
+              </p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Répartition par Catégorie (4/12) ── */}
-      <div className="lg:col-span-4 bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-gray-800">Répartition par catégorie</h3>
-          <button className="text-gray-400 hover:text-gray-600 transition-colors p-1">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-            </svg>
-          </button>
+      {/* ── Répartition par catégorie (4/12) ── */}
+      <div className="lg:col-span-4 bg-white border border-gray-100 rounded-2xl p-6 flex flex-col">
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-gray-800">Répartition par catégorie</h3>
+          <p className="text-xs text-gray-400 mt-0.5">{catTotal} signalement{catTotal > 1 ? 's' : ''} au total</p>
         </div>
 
-        {/* Donut chart avec valeur centrale */}
-        <div className="flex-1 flex items-center justify-center min-h-[180px] relative">
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+        {/* Donut */}
+        <div className="flex-1 flex items-center justify-center min-h-[180px] relative my-2">
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
             <span className="text-3xl font-bold text-gray-900">{catTotal}</span>
+            <span className="text-xs text-gray-400">total</span>
           </div>
           <Doughnut
             data={{
@@ -222,10 +235,10 @@ const AdminVisuals = ({ stats }: AdminVisualsProps) => {
                 {
                   data: catData,
                   backgroundColor: ['#f59e0b', '#3b82f6', '#8b5cf6', '#94a3b8'],
-                  borderWidth: 5,
+                  borderWidth: 4,
                   borderColor: '#ffffff',
-                  hoverBorderWidth: 5,
-                  hoverOffset: 5,
+                  hoverBorderWidth: 4,
+                  hoverOffset: 6,
                 },
               ],
             }}
@@ -250,29 +263,28 @@ const AdminVisuals = ({ stats }: AdminVisualsProps) => {
           />
         </div>
 
-        {/* Légende custom en dessous */}
-        <div className="mt-5 space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-              <span className="text-gray-600 font-medium">Déchets</span>
-            </div>
-            <span className="font-semibold text-gray-900">{stats.reportsByCategory.waste}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-              <span className="text-gray-600 font-medium">Inondation/Drainage</span>
-            </div>
-            <span className="font-semibold text-gray-900">{stats.reportsByCategory.drainage}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-              <span className="text-gray-600 font-medium">Infrastructures</span>
-            </div>
-            <span className="font-semibold text-gray-900">{stats.reportsByCategory.road}</span>
-          </div>
+        {/* Légende */}
+        <div className="mt-4 space-y-2.5">
+          {catCategories.map((cat) => {
+            const pct = catTotal > 0 ? Math.round((cat.value / catTotal) * 100) : 0
+            return (
+              <div key={cat.label} className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                  <span className="text-xs text-gray-600 font-medium truncate">{cat.label}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="h-1.5 rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, background: cat.color }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-gray-800 w-4 text-right">{cat.value}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 

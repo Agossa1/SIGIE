@@ -5,6 +5,7 @@ import type {
     InterventionStats,
     InterventionLog,
     CreateInterventionLogDTO,
+    UpdateInterventionDTO,
 } from "./interventions.types";
 
 /**
@@ -29,13 +30,16 @@ export const interventionsRtkApi = baseApi.injectEndpoints({
             invalidatesTags: [{ type: 'Intervention', id: 'LIST' }],
         }),
 
-        updateInterventionStatus: builder.mutation<Intervention, { id: string; status: string }>({
-            query: ({ id, status }) => ({
-                url: `/interventions/${id}/status`,
+        updateIntervention: builder.mutation<Intervention, { id: string; data: UpdateInterventionDTO }>({
+            query: ({ id, data }) => ({
+                url: `/interventions/${id}`,
                 method: "PATCH",
-                body: { status },
+                body: data,
             }),
-            invalidatesTags: (_result, _error, { id }) => [{ type: 'Intervention', id }],
+            invalidatesTags: (_result, _error, { id }) => [
+                { type: 'Intervention', id },
+                { type: 'Intervention', id: `logs-${id}` }
+            ],
         }),
 
         getTraceability: builder.query<TraceabilityChain, string>({
@@ -86,6 +90,10 @@ interface TraceabilityReport {
     priority: string;
     reportedAt: string;
     municipalityName?: string;
+    regionName?: string;
+    districtName?: string;
+    neighborhoodName?: string;
+    creatorName?: string;
 }
 
 interface TraceabilityMission {
@@ -95,6 +103,7 @@ interface TraceabilityMission {
     scheduledAt?: string;
     completedAt?: string;
     teamName?: string;
+    creatorName?: string;
     completionPercentage?: number;
 }
 
@@ -105,6 +114,7 @@ interface TraceabilityIntervention {
     startedAt?: string;
     endedAt?: string;
     teamName?: string;
+    agentName?: string;
     completionPercentage?: number;
 }
 
@@ -118,7 +128,7 @@ export const {
     useGetInterventionsQuery,
     useGetInterventionsByMissionQuery,
     useCreateInterventionMutation,
-    useUpdateInterventionStatusMutation,
+    useUpdateInterventionMutation,
     useGetTraceabilityQuery,
     useGetInterventionsStatsQuery,
     useGetInterventionLogsQuery,

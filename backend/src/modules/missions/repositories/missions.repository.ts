@@ -30,7 +30,7 @@ export class MissionsRepository {
                 INSERT INTO missions (
                     title, description, mission_type, priority_level, 
                     municipality_id, assigned_team_id, scheduled_at, created_by, status,
-                    report_id, due_date, estimated_hours
+                    report_id, due_date, estimated_hours, assigned_service
             `;
             const params: any[] = [
                 dto.title,
@@ -45,13 +45,14 @@ export class MissionsRepository {
                 dto.reportId || null,
                 dto.dueDate || null,
                 dto.estimatedHours || null,
+                dto.assignedService || null,
             ];
 
             if (dto.latitude !== undefined && dto.longitude !== undefined) {
-                sql += `, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, ST_SetSRID(ST_MakePoint($14, $13), 4326)) RETURNING id`;
+                sql += `, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, ST_SetSRID(ST_MakePoint($15, $14), 4326)) RETURNING id`;
                 params.push(dto.latitude, dto.longitude);
             } else {
-                sql += `) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`;
+                sql += `) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`;
             }
 
             const result = await this.db.query(sql, params);
@@ -78,6 +79,7 @@ export class MissionsRepository {
                     m.due_date as "dueDate",
                     m.estimated_hours as "estimatedHours",
                     m.actual_hours as "actualHours",
+                    m.assigned_service as "assignedService",
                     (m.due_date IS NOT NULL AND m.due_date < NOW() AND m.status NOT IN ('completed','validated','cancelled')) as "isOverdue",
                     ST_Y(m.location::geometry) as "latitude",
                     ST_X(m.location::geometry) as "longitude"
@@ -163,12 +165,15 @@ export class MissionsRepository {
                     m.due_date as "dueDate",
                     m.estimated_hours as "estimatedHours",
                     m.actual_hours as "actualHours",
+                    m.assigned_service as "assignedService",
                     (m.due_date IS NOT NULL AND m.due_date < NOW() AND m.status NOT IN ('completed','validated','cancelled')) as "isOverdue",
                     ST_Y(m.location::geometry) as "latitude",
-                    ST_X(m.location::geometry) as "longitude"
+                    ST_X(m.location::geometry) as "longitude",
+                    COALESCE(u.first_name || ' ' || u.last_name, u.email) as "creatorName"
                 FROM missions m
                 LEFT JOIN municipalities mun ON m.municipality_id = mun.id
                 LEFT JOIN field_teams ft ON m.assigned_team_id = ft.id
+                LEFT JOIN users u ON m.created_by = u.id
             `;
 
             // Count
@@ -246,10 +251,13 @@ export class MissionsRepository {
                     m.due_date as "dueDate",
                     m.estimated_hours as "estimatedHours",
                     m.actual_hours as "actualHours",
-                    (m.due_date IS NOT NULL AND m.due_date < NOW() AND m.status NOT IN ('completed','validated','cancelled')) as "isOverdue"
+                    m.assigned_service as "assignedService",
+                    (m.due_date IS NOT NULL AND m.due_date < NOW() AND m.status NOT IN ('completed','validated','cancelled')) as "isOverdue",
+                    COALESCE(u.first_name || ' ' || u.last_name, u.email) as "creatorName"
                 FROM missions m
                 LEFT JOIN municipalities mun ON m.municipality_id = mun.id
                 LEFT JOIN field_teams ft ON m.assigned_team_id = ft.id
+                LEFT JOIN users u ON m.created_by = u.id
                 WHERE m.id = $1
             `;
             const missionResult = await this.db.query(missionSql, [id]);
@@ -381,6 +389,118 @@ export class MissionsRepository {
         } catch (error) {
             this.logger.error('Error completing active interventions:', error);
             throw new BadRequestError('Erreur lors de la clôture des interventions');
+        }
+    }
+
+    // ── Méthodes ajoutées Phase 1 — Pipeline Signalement → Mission ──────────
+
+    /**
+     * Trouve un signalement par son ID (utilisé pour pré-remplir une mission).
+     */
+    async findReportById(reportId: string): Promise<any | null> {
+        try {
+            const result = await this.db.query(
+                `SELECT id, title, description, issue_category, priority, risk_level, status,
+                        municipality_id, region_id, district_id, neighborhood_id,
+                        ST_Y(location::geometry) as latitude, ST_X(location::geometry) as longitude,
+                        created_by, reported_at, sla_hours
+                 FROM technician_reports
+                 WHERE id = $1 AND deleted_at IS NULL`,
+                [reportId]
+            );
+            return result.rowCount > 0 ? result.rows[0] : null;
+        } catch (error) {
+            this.logger.error('Error finding report by id:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Vérifie si une mission active (non terminée/annulée) est déjà liée à un signalement.
+     */
+    async findActiveMissionByReportId(reportId: string): Promise<{ title: string; status: string } | null> {
+        try {
+            const result = await this.db.query(
+                `SELECT title, status FROM missions 
+                 WHERE report_id = $1 AND status NOT IN ('completed', 'validated', 'cancelled')
+                 LIMIT 1`,
+                [reportId]
+            );
+            return result.rowCount > 0 ? result.rows[0] : null;
+        } catch (error) {
+            this.logger.error('Error finding active mission by report id:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Met à jour le statut d'un signalement (utilisé lors de la création de mission depuis un signalement).
+     */
+    async updateReportStatus(reportId: string, status: string): Promise<void> {
+        try {
+            await this.db.query(
+                `UPDATE technician_reports 
+                 SET status = $1::field_report_status_enum, updated_at = NOW() 
+                 WHERE id = $2`,
+                [status, reportId]
+            );
+        } catch (error) {
+            this.logger.error('Error updating report status:', error);
+            throw new BadRequestError('Erreur lors de la mise à jour du statut du signalement');
+        }
+    }
+
+    /**
+     * Insère un log de changement de statut pour une mission.
+     */
+    async insertMissionStatusLog(
+        missionId: string,
+        oldStatus: string | null,
+        newStatus: string,
+        changedBy: string
+    ): Promise<void> {
+        try {
+            await this.db.query(
+                `INSERT INTO mission_status_logs (mission_id, old_status, new_status, changed_by)
+                 VALUES ($1, $2::mission_status_enum, $3::mission_status_enum, $4)`,
+                [missionId, oldStatus, newStatus, changedBy]
+            );
+        } catch (error) {
+            this.logger.error('Error inserting mission status log:', error);
+            // Non-bloquant — on log juste l'erreur
+        }
+    }
+
+    /**
+     * Met à jour resolvedAt sur un signalement (pour le calcul SLA).
+     */
+    async setReportResolvedAt(reportId: string): Promise<void> {
+        try {
+            await this.db.query(
+                `UPDATE technician_reports SET resolved_at = NOW(), updated_at = NOW() WHERE id = $1`,
+                [reportId]
+            );
+        } catch (error) {
+            this.logger.error('Error setting report resolvedAt:', error);
+        }
+    }
+
+    /**
+     * Ajoute un commentaire à un signalement.
+     */
+    async addReportComment(
+        reportId: string,
+        authorId: string,
+        dto: { body: string; isInternal: boolean }
+    ): Promise<void> {
+        try {
+            await this.db.query(
+                `INSERT INTO report_comments (report_id, author_id, body, is_internal, created_at)
+                 VALUES ($1, $2, $3, $4, NOW())`,
+                [reportId, authorId, dto.body, dto.isInternal]
+            );
+        } catch (error) {
+            this.logger.error('Error adding report comment:', error);
         }
     }
 }

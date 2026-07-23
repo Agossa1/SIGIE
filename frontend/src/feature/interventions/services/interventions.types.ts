@@ -21,6 +21,8 @@ export interface Intervention {
     missionTitle?: string;
     completionPercentage?: number;
     teamName?: string;
+    priority?: string;
+    agentName?: string;
 }
 
 export type FieldAssignmentStatus = 'pending' | 'accepted' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
@@ -28,6 +30,14 @@ export type FieldAssignmentStatus = 'pending' | 'accepted' | 'rejected' | 'in_pr
 export interface CreateInterventionDTO {
     missionId: string;
     interventionType: string;
+    userId?: string;
+    priority?: string;
+}
+
+export interface UpdateInterventionDTO {
+    status?: string;
+    completionPercentage?: number;
+    priority?: string;
     userId?: string;
 }
 
@@ -47,7 +57,8 @@ export interface CreateInterventionReportDTO {
     recommendations?: string;
     completed?: boolean;
     completionPercentage?: number;
-    photos?: string[];
+    photosBefore?: string[];
+    photosAfter?: string[];
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────

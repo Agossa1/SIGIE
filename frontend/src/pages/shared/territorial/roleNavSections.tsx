@@ -114,7 +114,7 @@ const FIELD_SECTION: { label: string; pageIds: RolePageId[] } = {
   pageIds: ["dashboard", "fieldOps", "agentReports", "interventions", "teamsGps"],
 }
 
-export function buildNavSections(pageIds: RolePageId[]): NavSection[] {
+export function buildNavSections(pageIds: RolePageId[], isFieldAgent: boolean = false): NavSection[] {
   const hasTerritorial = pageIds.some((id) =>
     ["gisMap", "infrastructure", "roads", "sanitation", "alerts"].includes(id)
   )
@@ -138,7 +138,7 @@ export function buildNavSections(pageIds: RolePageId[]): NavSection[] {
   }
 
   return SECTION_DEFS.map((section) => ({
-    label: section.label,
+    label: (isFieldAgent && section.label === "SUPERVISION") ? FIELD_SECTION.label : section.label,
     items: section.pageIds
       .filter((id) => pageIds.includes(id))
       .map((id) => ({

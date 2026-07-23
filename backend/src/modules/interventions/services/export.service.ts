@@ -3,12 +3,7 @@ import { InterventionsRepository } from '../repositories/interventions.repositor
 export class InterventionsExportService {
     constructor(private readonly repository: InterventionsRepository) {}
 
-    async exportCSV(filters?: {
-        municipalityId?: string;
-        dateFrom?: string;
-        dateTo?: string;
-        status?: string;
-    }): Promise<string> {
+    async exportCSV(filters?: any): Promise<string> {
         const records = await this.repository.exportCSV(filters || {});
 
         const headers = ['ID', 'Type', 'Statut', 'Début', 'Fin', 'Mission', 'Commune', 'Agent'];

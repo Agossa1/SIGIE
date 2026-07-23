@@ -21,6 +21,10 @@ export enum IssueCategory {
 export enum FieldReportStatus {
     DRAFT = 'draft',
     SUBMITTED = 'submitted',
+    VALIDATED_BY_TEAM = 'validated_by_team',
+    NEEDS_REVISION = 'needs_revision',
+    PENDING_DST = 'pending_dst',
+    PENDING_SGDS = 'pending_sgds',
     ASSIGNED = 'assigned',
     IN_PROGRESS = 'in_progress',
     RESOLVED = 'resolved',
@@ -142,6 +146,13 @@ export interface TechnicianReport {
     assignedTo?: string;
     resolvedAt?: string;
     slaHours: number;
+    // Recommandation superviseur
+    supervisorRecommendation?: string;
+    suggestedMissionType?: string;
+    suggestedPriority?: string;
+    estimatedBudget?: number;
+    regroupedReportIds?: string[];
+    urgentFlag?: boolean;
     // Extensions 1:1 typées
     drainageDetails?: DrainageDetails;
     roadDetails?: RoadDetails;

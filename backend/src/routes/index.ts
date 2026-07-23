@@ -16,6 +16,8 @@ import { configureAlertsRoutes } from '../modules/alerts/alerts.module';
 import { configureAuditRoutes } from '../modules/audit/audit.module';
 import { configureFieldOpsRoutes } from '../modules/fieldops/fieldops.module';
 import { configureProfilesRoutes } from '../modules/profiles/profiles.module';
+import { configureAnalyticsRoutes } from '../modules/analytics/analytics.module';
+import { configureNotificationsRoutes } from '../modules/notifications/notifications.module';
 import { configureStubRoutes } from '../modules/stubs/stubs.module';
 
 export const configureRoutes = (db: PostgresDatabase) => {
@@ -37,6 +39,8 @@ export const configureRoutes = (db: PostgresDatabase) => {
     router.use('/audit', configureAuditRoutes(db));
     router.use('/fieldops', configureFieldOpsRoutes(db));
     router.use('/profiles', configureProfilesRoutes(db));
+    router.use('/analytics', configureAnalyticsRoutes(db));
+    router.use('/notifications', configureNotificationsRoutes(db));
 
     // Stubs pour modules non encore migrés (évite les 404)
     router.use('/', configureStubRoutes(db));

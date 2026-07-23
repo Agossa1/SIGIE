@@ -28,7 +28,9 @@ const SidebarContent = ({
 }) => {
   const { roles } = useAuthRoles()
   const { pathname } = useLocation()
-  const sections = buildNavSections(config.pages)
+  
+  const isFieldAgent = config.folder === "techniciens" || config.folder === "teamLeader";
+  const sections = buildNavSections(config.pages, isFieldAgent)
 
   const displayName = currentUser
     ? `${currentUser.firstName ?? ""} ${currentUser.lastName ?? ""}`.trim() || currentUser.email

@@ -16,12 +16,18 @@ export const configureReportsRoutes = (db: PostgresDatabase) => {
     router.get('/:id', module.controllers.get.getById);
 
     // Routes d'écriture — rôles autorisés
-    const writeRoles = ['super_admin', 'platform_admin', 'supervisor', 'team_leader'];
+    const writeRoles = ['super_admin', 'platform_admin', 'supervisor', 'team_leader', 'technician', 'sgds_manager', 'dst_manager', 'mayor'];
     router.post('/', requireRole(writeRoles), module.controllers.create.create);
     router.put('/:id', requireRole(writeRoles), module.controllers.update.update);
     router.delete('/:id', requireRole(['super_admin', 'platform_admin']), module.controllers.delete.delete);
     router.post('/:id/comments', requireRole(writeRoles), module.controllers.comment.addComment);
     router.post('/:id/assign', requireRole(writeRoles), module.controllers.assign.assign);
+
+    // Pipeline : Chef de brigade valide/rejette/demande correction
+    router.patch('/:id/validate-by-team', requireRole(['team_leader', 'supervisor']), module.controllers.validateByTeam.handle);
+
+    // Pipeline : Superviseur recommande et aiguille vers DST/SGDS
+    router.patch('/:id/recommend', requireRole(['supervisor']), module.controllers.recommend.handle);
 
     return router;
 };

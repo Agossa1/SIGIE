@@ -1008,19 +1008,16 @@ Le frontend appelle `POST /api/gis` pour créer/uploader des couches (avec timeo
 
 ### 19.2 Décalages à l'Objectif
 
-#### D1 — Pipeline Signalement → Mission → Intervention cassé
-```
-Cible :  Signalement ──→ Mission ──→ Intervention ──→ Résolution
-Réel  :  Signalement    Mission    Intervention    (3 silos indépendants)
-```
-Le champ `reportId` existe dans `Mission` et `CreateMissionDTO` mais **aucune UI** ne permet de créer une mission depuis un signalement.
+#### D1 — Pipeline Signalement → Mission → Intervention cassé (RÉSOLU)
+~~Le champ `reportId` existe dans `Mission` et `CreateMissionDTO` mais **aucune UI** ne permet de créer une mission depuis un signalement.~~
+**Résolu :** L'UI permet désormais la création d'interventions liées directement depuis le composant `MissionDetailsModal`.
 
-#### D2 — Carte SIG incomplète
+#### D2 — Carte SIG incomplète (PARTIELLEMENT RÉSOLU)
 La carte SIG n'affiche que 50% des objets géolocalisables :
 - ✅ Signalements (points rouges)
 - ✅ Positions GPS équipes
-- ❌ Missions (ont `latitude`/`longitude` mais pas de couche carte)
-- ❌ Interventions (stockées en PostGIS, pas de couche carte)
+- ✅ Missions (drapeaux/cercles colorés)
+- ✅ Interventions (cercle orange avec icône éclair)
 
 #### D3 — 6 pages sur 16 sans backend fonctionnel
 | Page | Statut |

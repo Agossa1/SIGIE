@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Pen, User } from 'lucide-react';
 import type { Mission } from '../services/missions.types';
 import { MissionStatus } from '../services/missions.types';
 
@@ -108,15 +109,26 @@ export const MissionsKanban: React.FC<MissionsKanbanProps> = ({
                     {mission.description || 'Aucune description'}
                   </p>
                   
-                  <div className="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
-                    <span className="text-xs text-gray-600 truncate flex-1" title={mission.assignedTeamName}>
-                      {mission.assignedTeamName ? `👤 ${mission.assignedTeamName}` : 'Non assignée'}
-                    </span>
-                    {mission.dueDate && (
-                      <span className={`text-[10px] font-medium ml-2 ${mission.isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
-                        {new Date(mission.dueDate).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}
+                  <div className="flex flex-col gap-1.5 mt-auto pt-2 border-t border-gray-50">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-400 shrink-0 flex items-center gap-1.5"><Pen className="w-3.5 h-3.5" /> Créée par:</span>
+                      <span className="text-gray-700 font-medium truncate" title={(mission as any).creatorName || mission.createdBy}>
+                        {(mission as any).creatorName || mission.createdBy || 'Système'}
                       </span>
-                    )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-gray-400 shrink-0 flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> Assignée à:</span>
+                        <span className="text-gray-700 font-medium truncate" title={mission.assignedTeamName}>
+                          {mission.assignedTeamName || 'Non assignée'}
+                        </span>
+                      </div>
+                      {mission.dueDate && (
+                        <span className={`text-[10px] font-medium shrink-0 ${mission.isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                          {new Date(mission.dueDate).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

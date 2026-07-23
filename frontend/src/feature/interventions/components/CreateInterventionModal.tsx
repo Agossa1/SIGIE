@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { CreateInterventionDTO } from "../services/interventions.types";
+import { usersApi, type UserWithRoles } from "../../users/services/users.api";
 
 const INTERVENTION_TYPES = [
   { value: "drain_cleaning", label: "Curage caniveaux / drains" },
@@ -24,15 +25,24 @@ export const CreateInterventionModal: React.FC<CreateInterventionModalProps> = (
   onSubmit,
 }) => {
   const [interventionType, setInterventionType] = useState("drain_cleaning");
+  const [priority, setPriority] = useState("medium");
+  const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
+
+  useEffect(() => {
+    usersApi.getAllUsers()
+      .then(data => setUsers(data.filter(u => u.roles.some(r => r.includes('technician') || r.includes('agent')))))
+      .catch(err => console.error("Failed to load users", err));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
       setError(null);
-      await onSubmit({ missionId, interventionType });
+      await onSubmit({ missionId, interventionType, priority, userId: userId || undefined });
       onClose();
     } catch (err: any) {
       setError(err.message || "Erreur lors de la création de l'intervention");
@@ -77,6 +87,39 @@ export const CreateInterventionModal: React.FC<CreateInterventionModalProps> = (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Priorité *
+            </label>
+            <select
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all text-sm outline-none"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              required
+            >
+              <option value="low">Basse</option>
+              <option value="medium">Moyenne</option>
+              <option value="high">Haute</option>
+              <option value="urgent">Urgence</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Assigner à un agent
+            </label>
+            <select
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all text-sm outline-none"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            >
+              <option value="">-- Non assigné --</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
               ))}
             </select>
           </div>

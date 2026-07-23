@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { Upload, X, Image as ImageIcon } from "lucide-react";
 import type { CreateInterventionReportDTO } from "../services/interventions.types";
 
 interface InterventionReportModalProps {
@@ -18,9 +19,44 @@ export const InterventionReportModal: React.FC<InterventionReportModalProps> = (
     finalConditionScore: undefined,
     recommendations: "",
     completed: false,
+    completionPercentage: undefined,
+    photosBefore: [""],
+    photosAfter: [""],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fileInputBeforeRef = useRef<HTMLInputElement>(null);
+  const fileInputAfterRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'photosBefore' | 'photosAfter'
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Simulate an upload by generating an object URL
+      const url = URL.createObjectURL(file);
+      setFormData(prev => ({
+        ...prev,
+        [field]: [url]
+      }));
+    }
+  };
+
+  const removePhoto = (field: 'photosBefore' | 'photosAfter') => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: []
+    }));
+    // Reset the input value
+    if (field === 'photosBefore' && fileInputBeforeRef.current) {
+        fileInputBeforeRef.current.value = '';
+    }
+    if (field === 'photosAfter' && fileInputAfterRef.current) {
+        fileInputAfterRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +153,108 @@ export const InterventionReportModal: React.FC<InterventionReportModalProps> = (
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Progression globale (%)
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 transition-all text-sm outline-none"
+              placeholder="Ex: 50"
+              value={formData.completionPercentage ?? ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  completionPercentage: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Photo Avant */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Photo Avant
+              </label>
+              {formData.photosBefore && formData.photosBefore.length > 0 && formData.photosBefore[0] ? (
+                <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-32">
+                    <img src={formData.photosBefore[0]} alt="Avant" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                            type="button"
+                            onClick={() => removePhoto('photosBefore')}
+                            className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                            title="Supprimer la photo"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputBeforeRef.current?.click()}
+                  className="w-full h-32 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-green-300 transition-all flex flex-col items-center justify-center gap-2 group"
+                >
+                  <div className="p-2 rounded-full bg-green-50 text-green-500 group-hover:bg-green-100 transition-colors">
+                      <ImageIcon className="w-5 h-5" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-500 group-hover:text-green-600">Ajouter une photo</span>
+                </button>
+              )}
+              <input
+                type="file"
+                ref={fileInputBeforeRef}
+                className="hidden"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'photosBefore')}
+              />
+            </div>
+
+            {/* Photo Après */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Photo Après
+              </label>
+              {formData.photosAfter && formData.photosAfter.length > 0 && formData.photosAfter[0] ? (
+                <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-32">
+                    <img src={formData.photosAfter[0]} alt="Après" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                            type="button"
+                            onClick={() => removePhoto('photosAfter')}
+                            className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                            title="Supprimer la photo"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputAfterRef.current?.click()}
+                  className="w-full h-32 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-green-300 transition-all flex flex-col items-center justify-center gap-2 group"
+                >
+                  <div className="p-2 rounded-full bg-green-50 text-green-500 group-hover:bg-green-100 transition-colors">
+                      <Upload className="w-5 h-5" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-500 group-hover:text-green-600">Ajouter une photo</span>
+                </button>
+              )}
+              <input
+                type="file"
+                ref={fileInputAfterRef}
+                className="hidden"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'photosAfter')}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Recommandations
             </label>
             <textarea
@@ -131,7 +269,7 @@ export const InterventionReportModal: React.FC<InterventionReportModalProps> = (
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              className="w-4 h-4 rounded accent-indigo-600"
+              className="w-4 h-4 rounded accent-green-600"
               checked={formData.completed ?? false}
               onChange={(e) => setFormData({ ...formData, completed: e.target.checked })}
             />
@@ -150,7 +288,7 @@ export const InterventionReportModal: React.FC<InterventionReportModalProps> = (
             <button
               type="submit"
               disabled={loading || !formData.workDone.trim()}
-              className="px-6 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition-colors disabled:bg-green-300 flex items-center gap-2 shadow-sm"
             >
               {loading && <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
               <span>{loading ? "Enregistrement..." : "Valider le rapport"}</span>

@@ -1,4 +1,7 @@
 import { useState, type FormEvent, useMemo } from "react"
+import { Bar } from 'react-chartjs-2'
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js'
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip)
 import { Navigate } from "react-router-dom"
 import { useAppDispatch, useAppSelector } from "../../stores/hooks"
 import { registerThunk, logoutThunk } from "../../feature/auth/services/auth.thunk"
@@ -266,66 +269,83 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* ── Panneau droite : répartition régionale ── */}
-                    <div className="xl:w-80 flex-shrink-0 border-t xl:border-t-0 xl:border-l border-gray-100 p-6 flex flex-col gap-5">
-                      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Répartition par région</h3>
+                    {(() => {
+                      const total = stats.reports.length;
+                      const counts: Record<string, number> = {};
+                      stats.reports.forEach(r => {
+                        const region = r.regionName || 'Non spécifié';
+                        counts[region] = (counts[region] || 0) + 1;
+                      });
+                      const top5 = Object.entries(counts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5);
+                      const labels = top5.map(([name]) => name);
+                      const values = top5.map(([, count]) => count);
+                      const COLORS = ['#0f766e','#10b981','#34d399','#6ee7b7','#8b5cf6'];
 
-                      {(() => {
-                        const total = stats.reports.length;
-                        if (total === 0) return <div className="text-sm text-gray-500">Aucune donnée</div>;
-                        const counts: Record<string, number> = {};
-                        stats.reports.forEach(r => {
-                          const region = r.regionName || 'Non spécifié';
-                          counts[region] = (counts[region] || 0) + 1;
-                        });
-                        const colors = ["#0f766e", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0", "#8b5cf6", "#ec4899", "#f59e0b"];
-                        const regionDistribution = Object.entries(counts)
-                          .sort((a, b) => b[1] - a[1])
-                          .slice(0, 5)
-                          .map(([name, count], idx) => ({
-                            name,
-                            pct: Math.round((count / total) * 100),
-                            color: colors[idx % colors.length]
-                          }));
-
-                        return regionDistribution.map((region) => (
-                          <div key={region.name} className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
-                              style={{ backgroundColor: region.color }}
-                            >
-                              {region.name.charAt(0)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-sm font-semibold text-gray-700 truncate">{region.name}</span>
-                                <span className="text-sm font-bold text-gray-500 ml-2 flex-shrink-0">{region.pct}%</span>
-                              </div>
-                              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full transition-all duration-700"
-                                  style={{ width: `${region.pct}%`, backgroundColor: region.color }}
-                                />
-                              </div>
-                            </div>
+                      return (
+                        <div className="xl:w-80 flex-shrink-0 border-t xl:border-t-0 xl:border-l border-gray-100 p-6 flex flex-col gap-4">
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-800">Répartition par région</h3>
+                            <p className="text-xs text-gray-400 mt-0.5">Top 5 régions actives</p>
                           </div>
-                        ));
-                      })()}
 
-                      <div className="mt-auto pt-5 border-t border-gray-100">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-400">Total signalements</span>
-                          <span className="text-base font-bold text-gray-900">{reportStats.total}</span>
+                          <div className="flex-1 min-h-[200px]">
+                            {total === 0 ? (
+                              <p className="text-sm text-gray-400">Aucune donnée</p>
+                            ) : (
+                              <Bar
+                                data={{
+                                  labels,
+                                  datasets: [{
+                                    label: 'Signalements',
+                                    data: values,
+                                    backgroundColor: COLORS,
+                                    borderRadius: 6,
+                                    barPercentage: 0.65,
+                                  }],
+                                }}
+                                options={{
+                                  indexAxis: 'y',
+                                  responsive: true,
+                                  maintainAspectRatio: false,
+                                  plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                      backgroundColor: '#fff',
+                                      titleColor: '#1e293b',
+                                      bodyColor: '#475569',
+                                      borderColor: '#e2e8f0',
+                                      borderWidth: 1,
+                                      padding: 10,
+                                      cornerRadius: 10,
+                                    },
+                                  },
+                                  scales: {
+                                    x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 12 } } },
+                                    y: { grid: { display: false }, border: { display: false }, ticks: { color: '#374151', font: { size: 12, weight: 'bold' } } },
+                                  },
+                                }}
+                              />
+                            )}
+                          </div>
+
+                          <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Total</span>
+                            <span className="font-bold text-gray-900">{reportStats.total}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm -mt-2">
+                            <span className="text-gray-500">Résolus</span>
+                            <span className="font-bold text-emerald-600">{reportStats.resolved}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm -mt-2">
+                            <span className="text-gray-500">En cours</span>
+                            <span className="font-bold text-blue-600">{reportStats.inProgress}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-sm font-medium text-gray-400">Résolus</span>
-                          <span className="text-base font-bold text-emerald-600">{reportStats.resolved}</span>
-                        </div>
-                        <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-sm font-medium text-gray-400">En cours</span>
-                          <span className="text-base font-bold text-blue-600">{reportStats.inProgress}</span>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
+
                   </div>
                 </div>
 

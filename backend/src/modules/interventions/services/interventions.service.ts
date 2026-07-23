@@ -1,4 +1,4 @@
-import { type InterventionRecord } from  '../types/interventions.types'
+import { type InterventionRecord, type UpdateInterventionDTO } from  '../types/interventions.types'
 import { InterventionStatus, InterventionType, VALID_STATUSES, VALID_TYPES } from '../types/interventions.enums';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/appErrors';
 import { InterventionsRepository } from '../repositories/interventions.repository';
@@ -7,13 +7,11 @@ import { InterventionsRepository } from '../repositories/interventions.repositor
 export interface CreateInterventionInput {
     missionId: string;
     interventionType: string;
-    userId: string;
+    userId?: string;
+    priority?: string;
 }
 
-export interface UpdateStatusInput {
-    id: string;
-    status: string;
-}
+
 
 /**
  * InterventionsService — couche métier centrale.
@@ -34,7 +32,7 @@ export class InterventionsService {
      * @throws {BadRequestError} si missionId, interventionType manquants ou type invalide
      */
     async create(input: CreateInterventionInput): Promise<InterventionRecord> {
-        const { missionId, interventionType, userId } = input;
+        const { missionId, interventionType, userId, priority } = input;
 
         if (!missionId || typeof missionId !== 'string' || missionId.trim() === '') {
             throw new BadRequestError('Le champ "missionId" est obligatoire.');
@@ -51,30 +49,26 @@ export class InterventionsService {
             );
         }
 
-        return this.repository.create(missionId.trim(), interventionType, userId);
+        return this.repository.create(missionId.trim(), interventionType, userId, priority);
     }
 
     /**
-     * Met à jour le statut d'une intervention.
+     * Met à jour une intervention.
      *
-     * @throws {BadRequestError} si le statut est absent ou non reconnu
+     * @throws {BadRequestError} si le statut est non reconnu
      * @throws {NotFoundError} si l'intervention n'existe pas
      */
-    async updateStatus(input: UpdateStatusInput): Promise<InterventionRecord> {
-        const { id, status } = input;
+    async updateIntervention(id: string, input: UpdateInterventionDTO): Promise<InterventionRecord> {
+        const { status, completionPercentage, priority, userId } = input;
 
-        if (!status || typeof status !== 'string') {
-            throw new BadRequestError('Le champ "status" est obligatoire.');
-        }
-
-        if (!VALID_STATUSES.has(status)) {
+        if (status && !VALID_STATUSES.has(status)) {
             throw new BadRequestError(
                 `Statut invalide : "${status}". ` +
                 `Valeurs acceptées : ${Object.values(InterventionStatus).join(', ')}.`
             );
         }
 
-        const updated = await this.repository.updateStatus(id, status);
+        const updated = await this.repository.updateIntervention(id, input);
 
         if (!updated) {
             throw new NotFoundError(`Intervention introuvable (id: ${id}).`);

@@ -22,19 +22,46 @@ class WsService {
     this.wss = new WebSocketServer({ server });
 
     this.wss.on("connection", (ws: AuthenticatedClient, req) => {
-      // Timeout d'authentification : 10 secondes pour s'authentifier
-      const authTimeout = setTimeout(() => {
-        if (!ws.userId) {
-          logger.warn("[WS] Connexion rejetée : pas d'authentification dans les 10s");
-          ws.close(4001, "Authentification requise");
+      // 1. Tenter d'authentifier immédiatement via le cookie HttpOnly (Client Web)
+      let isAuthenticated = false;
+      const cookies = req.headers.cookie;
+      if (cookies) {
+        const match = cookies.match(/accessToken=([^;]+)/);
+        if (match && match[1]) {
+          try {
+            const decoded = this.tokenManager.verifyAccessToken(match[1]) as TokenPayload;
+            ws.userId = decoded.id;
+            ws.roles = (decoded.roles || []).map(r => String(r));
+            if (!this.clients.has(decoded.id)) {
+              this.clients.set(decoded.id, new Set());
+            }
+            this.clients.get(decoded.id)!.add(ws);
+            isAuthenticated = true;
+            logger.info(`[WS] User ${decoded.id} authenticated via HttpOnly cookie (roles: ${ws.roles.join(',')})`);
+            ws.send(JSON.stringify({ type: "AUTH_OK", userId: decoded.id }));
+          } catch (e) {
+            logger.warn("[WS] Invalid cookie token");
+          }
         }
-      }, 10000);
+      }
+
+      // Timeout d'authentification : 10 secondes si pas authentifié par cookie
+      let authTimeout: NodeJS.Timeout | null = null;
+      if (!isAuthenticated) {
+        authTimeout = setTimeout(() => {
+          if (!ws.userId) {
+            logger.warn("[WS] Connexion rejetée : pas d'authentification dans les 10s");
+            ws.close(4001, "Authentification requise");
+          }
+        }, 10000);
+      }
 
       ws.on("message", (raw) => {
         try {
           const data = JSON.parse(raw.toString());
 
-          // 🔐 Authentification JWT obligatoire
+          // 🔐 Authentification JWT explicite (pour les clients mobiles sans cookies)
+          // Le client web envoie { type: 'AUTH', userId } ce qui sera ignoré ici si sans token, mais il est déjà authentifié par cookie.
           if (data.type === "AUTH" && data.token) {
             try {
               const decoded = this.tokenManager.verifyAccessToken(data.token) as TokenPayload;
@@ -46,8 +73,8 @@ class WsService {
               }
               this.clients.get(decoded.id)!.add(ws);
 
-              clearTimeout(authTimeout);
-              logger.info(`[WS] User ${decoded.id} authenticated (roles: ${ws.roles.join(',')})`);
+              if (authTimeout) clearTimeout(authTimeout);
+              logger.info(`[WS] User ${decoded.id} authenticated via token payload (roles: ${ws.roles.join(',')})`);
               ws.send(JSON.stringify({ type: "AUTH_OK", userId: decoded.id }));
             } catch {
               ws.send(JSON.stringify({ type: "AUTH_ERROR", message: "Token invalide ou expiré" }));

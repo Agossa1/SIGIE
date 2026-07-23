@@ -122,7 +122,7 @@ const TechnicienDashboardPage = () => {
   })
 
   return (
-    <TechnicianLayout>
+  
       <div className="space-y-6">
         {/* ── Bandeau de bienvenue ── */}
         <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 sm:p-6 overflow-hidden text-white">
@@ -315,7 +315,7 @@ const TechnicienDashboardPage = () => {
           </div>
         </div>
       </div>
-    </TechnicianLayout>
+
   )
 }
 

@@ -19,12 +19,15 @@ export interface Intervention {
     photosAfter?: string[];
     actualHours?: number;
     materialUsed?: string[];
+    priority?: string;
 }
 
 export interface CreateInterventionDTO {
     missionId: string;
     interventionType: string;
     reportId?: string;
+    priority?: string;
+    userId?: string;
 }
 
 export interface UpdateInterventionDTO {
@@ -32,6 +35,8 @@ export interface UpdateInterventionDTO {
     completionPercentage?: number;
     endedAt?: string;
     actualHours?: number;
+    priority?: string;
+    userId?: string;
 }
 
 export interface InterventionStats {
@@ -87,6 +92,8 @@ export interface InterventionRecord {
     longitude?: number;
     missionTitle?: string;
     teamName?: string;
+    priority?: string;
+    completionPercentage?: number;
 }
 
 export interface StatsRecord {

@@ -144,6 +144,7 @@ const SignalementsMapPage = ({ embedded = false }: { embedded?: boolean }) => {
 
   const [isGpsFailed, setIsGpsFailed] = useState(false);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
 
   // ── Restriction territoriale ──
   // Un technicien ne peut créer un signalement qu'à l'intérieur de sa commune.
@@ -310,6 +311,7 @@ const SignalementsMapPage = ({ embedded = false }: { embedded?: boolean }) => {
       setBiodiversityDetails({ speciesName: "", observationType: "fauna", count: 1 });
       setEnvironmentDetails({ measuredValue: 0, unit: "" });
       dispatch(fetchReports());
+      setIsFormModalOpen(false);
 
       // Auto-hide success message
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -440,7 +442,7 @@ const SignalementsMapPage = ({ embedded = false }: { embedded?: boolean }) => {
           </div>
           )}
 
-          <div className="grid gap-4 sm:gap-6 md:gap-8 xl:grid-cols-[1fr_400px]">
+          <div className="flex flex-col gap-4 sm:gap-6 md:gap-8">
 
             {/* Liste des Rapports */}
             <section className="flex flex-col border border-gray-100 rounded-2xl bg-white overflow-hidden order-2 xl:order-1 shadow-sm">
@@ -451,14 +453,27 @@ const SignalementsMapPage = ({ embedded = false }: { embedded?: boolean }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   {isLoading && <LoadingSpinner size="xs" />}
-                  <span className="rounded-full bg-yellow-50 px-2 sm:px-3 py-1 text-sm sm:text-sm text-gray-700 ring-1 ring-inset ring-yellow-600/10">{reports.length} total</span>
+                  <span className="rounded-full bg-yellow-50 px-2 sm:px-3 py-1 text-sm sm:text-sm text-gray-700 ring-1 ring-inset ring-yellow-600/10 hidden sm:inline-block">{reports.length} total</span>
+                  <button onClick={() => setIsFormModalOpen(true)} className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 shadow-sm">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                    Nouveau Rapport
+                  </button>
                 </div>
               </div>
 
               {error && (
-                <div className="m-6 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-medium text-rose-800 flex items-center gap-3">
+                <div className="m-5 sm:m-7 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-medium text-rose-800 flex items-center gap-3">
                   <svg className="w-5 h-5 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
                   {error}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="m-5 sm:m-7 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-medium text-emerald-800 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  {successMessage}
                 </div>
               )}
 
@@ -509,10 +524,10 @@ const SignalementsMapPage = ({ embedded = false }: { embedded?: boolean }) => {
                             <div>
                               <div className="font-bold text-gray-900">{report.title}</div>
                               {report.description && <div className="text-sm text-gray-500 mt-1.5 max-w-[250px] truncate">{report.description}</div>}
-                              {(report.neighborhoodName || report.districtName || report.municipalityName) && (
+                              {(report.regionName || report.municipalityName || report.districtName || report.neighborhoodName) && (
                                 <div className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-100 px-2.5 py-1 mt-2.5 rounded-md inline-flex items-center gap-1.5">
                                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                  {[report.neighborhoodName, report.districtName, report.municipalityName].filter(Boolean).join(', ')}
+                                  {[report.regionName, report.municipalityName, report.districtName, report.neighborhoodName].filter(Boolean).join(', ')}
                                 </div>
                               )}
                             </div>
@@ -586,23 +601,18 @@ const SignalementsMapPage = ({ embedded = false }: { embedded?: boolean }) => {
               </div>
             </section>
 
-            {/* Formulaire de création */}
-            <section className="border border-gray-100 rounded-2xl bg-white p-5 sm:p-7 shadow-sm self-start order-1 xl:order-2 xl:sticky xl:top-8">
-              <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-base sm:text-lg font-medium text-gray-900">Nouveau Rapport</h2>
-                  <p className="text-sm sm:text-sm text-emerald-600 mt-1">Déclarez un incident nécessitant une intervention.</p>
-                </div>
-              </div>
+            {/* Formulaire de création (Modale) */}
+            {isFormModalOpen && (
+              <div className="fixed inset-0 z-[100] flex justify-center bg-gray-900/60 backdrop-blur-sm p-4 overflow-y-auto pt-[10vh] animate-in fade-in duration-200">
+                <section className="relative w-full max-w-xl border border-gray-100 rounded-2xl bg-white p-5 sm:p-7 shadow-2xl h-fit mb-10 animate-in slide-in-from-bottom-4 duration-300">
+                  <button onClick={() => setIsFormModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
 
-              {successMessage && (
-                <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-medium text-emerald-800 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  <div className="mb-4 sm:mb-6 pr-8">
+                    <h2 className="text-xl font-bold text-gray-900">Nouveau Rapport</h2>
+                    <p className="text-sm text-emerald-600 mt-1">Déclarez un incident nécessitant une intervention.</p>
                   </div>
-                  {successMessage}
-                </div>
-              )}
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <label className="block">
@@ -844,7 +854,9 @@ const SignalementsMapPage = ({ embedded = false }: { embedded?: boolean }) => {
                   </button>
                 </div>
               </form>
-            </section>
+                </section>
+              </div>
+            )}
           </div>
           
           {/* Visionneuse de photo HD */}

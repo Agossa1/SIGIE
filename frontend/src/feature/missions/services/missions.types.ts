@@ -12,6 +12,8 @@ export enum MissionStatus {
     ASSIGNED = 'assigned',
     IN_PROGRESS = 'in_progress',
     COMPLETED = 'completed',
+    VALIDATED_BY_SUPERVISOR = 'validated_by_supervisor',
+    NEEDS_REWORK = 'needs_rework',
     VALIDATED = 'validated',
     CANCELLED = 'cancelled'
 }
@@ -52,6 +54,11 @@ export interface Mission {
     estimatedHours?: number;
     actualHours?: number;
     isOverdue?: boolean;
+    estimatedBudget?: number;
+    actualCost?: number;
+    closureNote?: string;
+    validatedBy?: string;
+    assignedService?: 'dst' | 'sgds';
 }
 
 export interface CreateMissionDTO {
@@ -68,6 +75,8 @@ export interface CreateMissionDTO {
     reportId?: string;
     dueDate?: string;
     estimatedHours?: number;
+    estimatedBudget?: number;
+    assignedService?: 'dst' | 'sgds';
 }
 
 export interface UpdateMissionDTO {
@@ -85,6 +94,11 @@ export interface UpdateMissionDTO {
     estimatedHours?: number;
     actualHours?: number;
     reportId?: string;
+    estimatedBudget?: number;
+    actualCost?: number;
+    closureNote?: string;
+    validatedBy?: string;
+    assignedService?: 'dst' | 'sgds';
 }
 
 export interface AssignMissionDTO {

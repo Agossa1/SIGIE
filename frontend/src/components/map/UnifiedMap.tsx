@@ -80,11 +80,25 @@ export interface TeamLocation {
   check_in_time: string
 }
 
+export interface InterventionPin {
+  id: string
+  title: string
+  interventionType: string
+  status: string
+  missionId: string
+  lat: number
+  lng: number
+  userName?: string
+  startedAt?: string
+}
+
 export interface UnifiedMapProps {
   /** Données d'incidents à afficher (clustering automatique). */
   incidentsData?: IncidentPin[]
   /** Données des missions terrain à afficher. */
   missionsData?: MissionPin[]
+  /** Données des interventions terrain à afficher. */
+  interventionsData?: InterventionPin[]
   /** Données GPS des équipes terrain à afficher. */
   teamsData?: TeamLocation[]
   /** Hauteur de la carte. */
@@ -93,6 +107,8 @@ export interface UnifiedMapProps {
   onIncidentClick?: (pin: IncidentPin) => void
   /** Callback quand l'utilisateur clique sur un marqueur de mission. */
   onMissionClick?: (pin: MissionPin) => void
+  /** Callback quand l'utilisateur clique sur un marqueur d'intervention. */
+  onInterventionClick?: (pin: InterventionPin) => void
   /** Callback quand l'utilisateur clique sur un marqueur d'équipe. */
   onTeamClick?: (team: TeamLocation) => void
   /** Callback quand l'utilisateur clique sur un endroit vide de la carte. */
@@ -211,6 +227,35 @@ const MissionMarkerIcon = ({ status, title }: { status: string; title: string })
   )
 }
 
+export function getInterventionStatusColor(status?: string): string {
+  switch (status?.toLowerCase()) {
+    case 'pending': return '#fca5a5'
+    case 'in_progress': return '#f97316'
+    case 'completed': return '#10b981'
+    case 'cancelled': return '#ef4444'
+    default: return '#9ca3af'
+  }
+}
+
+const InterventionMarkerIcon = ({ status, title }: { status: string; title: string }) => {
+  const color = getInterventionStatusColor(status)
+  return (
+    <div className="flex flex-col items-center pointer-events-none" style={{ transform: 'translate(-50%, -100%)' }}>
+      <div className="bg-white px-2 py-0.5 rounded-md shadow-sm border border-orange-100 mb-1">
+        <p className="text-sm font-medium text-orange-800 whitespace-nowrap max-w-[100px] truncate">{title}</p>
+      </div>
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-md"
+        style={{ backgroundColor: color }}
+      >
+        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
 // ── Calcul des bounds ──────────────────────────────────────────────────────────
 function calculateBounds(
   collections: Partial<Record<TerritoryLayerKey, GeoJsonFeatureCollection>>
@@ -243,10 +288,12 @@ function calculateBounds(
 const UnifiedMap = ({
   incidentsData,
   missionsData,
+  interventionsData,
   teamsData,
   height = '400px',
   onIncidentClick,
   onMissionClick,
+  onInterventionClick,
   onTeamClick,
   onMapClick,
   customMarker,
@@ -782,6 +829,18 @@ const UnifiedMap = ({
               onClick={() => onMissionClick?.(mission)}
             >
               <MissionMarkerIcon status={mission.status} title={mission.title} />
+            </Marker>
+          ))}
+
+          {/* Marqueurs d'interventions */}
+          {interventionsData?.map((intervention) => (
+            <Marker
+              key={`intervention-${intervention.id}`}
+              longitude={intervention.lng}
+              latitude={intervention.lat}
+              onClick={() => onInterventionClick?.(intervention)}
+            >
+              <InterventionMarkerIcon status={intervention.status} title={intervention.title} />
             </Marker>
           ))}
 

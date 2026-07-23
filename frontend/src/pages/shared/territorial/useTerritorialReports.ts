@@ -36,11 +36,16 @@ export function useTerritorialReports() {
     const byCategory = (cat: IssueCategory) =>
       reports.filter((r) => r.issueCategory === cat).length
 
+    const activeZones = new Set(reports.map(r => r.neighborhoodId).filter(Boolean)).size
+    const activeTeams = new Set(reports.map(r => r.assignedTo).filter(Boolean)).size
+
     return {
       total: reports.length,
       pending,
       resolved,
       urgent,
+      activeZones,
+      activeTeams,
       drainage: byCategory(IssueCategory.DRAINAGE),
       waste: byCategory(IssueCategory.WASTE),
       road: byCategory(IssueCategory.ROAD),

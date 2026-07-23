@@ -6,9 +6,10 @@ import { getScopeForFolder } from "../roleScopeLabels"
 import { useTerritorialReports } from "../useTerritorialReports"
 import { useAppSelector, useAppDispatch } from "../../../../stores/hooks"
 import { useTeamLocations } from "../../../../feature/teams/hooks/useTeamLocations"
-import type { IncidentPin, MissionPin, TeamLocation } from "../../../../components/map/UnifiedMap"
+import type { IncidentPin, MissionPin, TeamLocation, InterventionPin } from "../../../../components/map/UnifiedMap"
 import { selectAllMissions } from "../../../../feature/missions/services/missions.selectors"
 import { fetchMissions } from "../../../../feature/missions/services/missions.thunk"
+import { useGetInterventionsQuery } from "../../../../feature/interventions/services/interventions.rtk"
 
 const scope = getScopeForFolder("prefecture")
 
@@ -22,6 +23,8 @@ const SharedGisMapPage = ({ folder }: { folder: string }) => {
   // Charger les missions depuis le store Redux
   const missions = useAppSelector(selectAllMissions)
   const missionsLoading = useAppSelector((state) => state.missions.loading)
+  
+  const { data: interventions = [] } = useGetInterventionsQuery()
 
   useEffect(() => {
     if (!missionsLoading && missions.length === 0) {
@@ -73,15 +76,32 @@ const SharedGisMapPage = ({ folder }: { folder: string }) => {
       }))
   }, [missions])
 
+  const interventionsData: InterventionPin[] = useMemo(() => {
+    return interventions
+      .filter((i) => i.latitude != null && i.longitude != null)
+      .map((i) => ({
+        id: i.id,
+        title: i.title || `Intervention ${i.type}`,
+        interventionType: i.type,
+        status: i.status,
+        missionId: i.missionId,
+        lat: i.latitude!,
+        lng: i.longitude!,
+        userName: i.teamName || i.technicianName,
+        startedAt: i.startedAt,
+      }))
+  }, [interventions])
+
   return (
     <RoleTerritorialPageShell folder={folder} pageId="gisMap">
       <div className="space-y-5">
-        <TerritorialOverview scopeLabel={scope.scopeLabel} perimeterTag={scope.perimeterTag} signalements={stats.total} />
+        <TerritorialOverview scopeLabel={scope.scopeLabel} perimeterTag={scope.perimeterTag} />
         <TerritorialGisMapSection 
           folder={folder} 
           teamsData={teamLocations} 
           incidentsData={incidentsData}
           missionsData={missionsData}
+          interventionsData={interventionsData}
         />
       </div>
     </RoleTerritorialPageShell>

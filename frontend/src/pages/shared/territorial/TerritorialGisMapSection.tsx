@@ -12,6 +12,8 @@ interface TerritorialGisMapSectionProps {
   incidentsData?: IncidentPin[]
   /** Données des missions à afficher sur la carte */
   missionsData?: MissionPin[]
+  /** Données des interventions à afficher sur la carte */
+  interventionsData?: any[]
 }
 
 const FOOTNOTES: Record<string, string> = {
@@ -39,12 +41,13 @@ const TerritorialGisMapSection = ({
   teamsData,
   incidentsData,
   missionsData,
+  interventionsData,
 }: TerritorialGisMapSectionProps) => {
   const preset = presetOverride ?? presetForFolder(folder)
 
   return (
     <div className="space-y-3">
-      <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 overflow-hidden min-h-[420px]">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 overflow-hidden min-h-[420px]">
         <TerritorialMap
           preset={preset}
           height="420px"
@@ -53,6 +56,7 @@ const TerritorialGisMapSection = ({
           teamsData={teamsData}
           incidentsData={incidentsData}
           missionsData={missionsData}
+          interventionsData={interventionsData}
         />
       </div>
       <p className="text-sm text-gray-500 font-medium px-1">

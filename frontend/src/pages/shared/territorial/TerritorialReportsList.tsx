@@ -182,7 +182,7 @@ const TerritorialReportsList = () => {
               key={report.id}
               type="button"
               onClick={() => setSelectedReport(report)}
-              className="w-full text-left bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4 hover:border-emerald-200 hover:shadow-sm transition-all"
+              className="w-full text-left bg-white border border-gray-100 rounded p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4 hover:border-emerald-200 hover:shadow-sm transition-all"
             >
               {(report.photoUrl || report.photoBase64) ? (
                 <div className="shrink-0 w-full sm:w-20 h-20 rounded-xl overflow-hidden bg-gray-100">
@@ -205,6 +205,12 @@ const TerritorialReportsList = () => {
                   <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{report.description}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-400 font-medium">
+                  {(report.regionName || report.municipalityName || report.districtName || report.neighborhoodName) && (
+                    <div className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                      {[report.regionName, report.municipalityName, report.districtName, report.neighborhoodName].filter(Boolean).join(', ')}
+                    </div>
+                  )}
                   {report.latitude != null && (
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />

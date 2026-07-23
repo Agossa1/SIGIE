@@ -24,13 +24,12 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
     reportId: initialData?.reportId,
     dueDate: initialData?.dueDate ?? "",
     estimatedHours: initialData?.estimatedHours ? Number(initialData.estimatedHours) : 0,
+    assignedService: initialData?.assignedService,
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
-
-  // Report state
   const [allReports, setAllReports] = useState<TechnicianReport[]>([]);
 
   useEffect(() => {
@@ -45,7 +44,6 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
     const fetchReports = async () => {
       try {
         const reports = await reportsApi.getAllReports();
-        // Only show non-resolved, non-cancelled reports
         setAllReports(reports.filter(r => !['resolved', 'validated', 'cancelled'].includes(r.status)));
       } catch (err) {
         console.error("Failed to load reports:", err);
@@ -55,9 +53,6 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
     fetchReports();
   }, []);
 
-
-
-  // Filtrer les équipes par zone (municipalityId) — avec fallback si aucun résultat
   const zoneTeams = allTeams.filter(t => t.municipalityId === formData.municipalityId);
   const availableTeams = formData.municipalityId && zoneTeams.length > 0 ? zoneTeams : allTeams;
 
@@ -74,8 +69,15 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
       setError(null);
 
       const payload: any = { ...formData };
-      
-      // Clean up empty strings to pass backend Zod validation
+
+      const selectedReport = allReports.find(r => r.id === formData.reportId);
+      if (selectedReport) {
+        if (!payload.municipalityId) payload.municipalityId = selectedReport.municipalityId;
+        if (!payload.title && selectedReport.title) payload.title = selectedReport.title;
+        if (!payload.latitude && selectedReport.latitude) payload.latitude = selectedReport.latitude;
+        if (!payload.longitude && selectedReport.longitude) payload.longitude = selectedReport.longitude;
+      }
+
       if (!payload.dueDate) delete payload.dueDate;
       else payload.dueDate = new Date(payload.dueDate).toISOString();
 
@@ -85,6 +87,7 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
       if (!payload.description) delete payload.description;
       if (!payload.municipalityId) delete payload.municipalityId;
       if (!payload.assignedTeamId) delete payload.assignedTeamId;
+      if (!payload.assignedService) delete payload.assignedService;
       if (payload.estimatedHours === "") delete payload.estimatedHours;
 
       await onSubmit(payload);
@@ -107,10 +110,7 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h2 className="text-lg font-medium text-gray-900">Nouvelle Mission</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -119,26 +119,15 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-100">
-              {error}
-            </div>
+            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-100">{error}</div>
           )}
 
-          {/* --- Signalement lié --- */}
+          {/* Signalement lié */}
           <div className="border border-gray-200 bg-gray-50/50 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <label className="block text-sm font-medium text-gray-700">
-                Signalement associé <span className="text-red-500">*</span>
-              </label>
-            </div>
-            <p className="text-xs text-gray-500 mb-3">Toute mission doit être rattachée à un signalement de terrain.</p>
-
+            <label className="block text-sm font-medium text-gray-700 mb-1">Signalement associé <span className="text-red-500">*</span></label>
             <select
               required
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all text-sm outline-none"
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white focus:border-emerald-500 transition-all text-sm outline-none"
               value={formData.reportId || ""}
               onChange={(e) => {
                 const report = allReports.find(r => r.id === e.target.value);
@@ -151,141 +140,95 @@ export const CreateMissionModal: React.FC<CreateMissionModalProps> = ({ onClose,
             >
               <option value="" disabled>Sélectionner un signalement...</option>
               {allReports.map(report => (
-                <option key={report.id} value={report.id}>
-                  {report.title} ({categoryLabel[report.issueCategory] ?? report.issueCategory})
-                </option>
+                <option key={report.id} value={report.id}>{report.title} ({categoryLabel[report.issueCategory] ?? report.issueCategory})</option>
               ))}
             </select>
-            
             {(() => {
               const selected = allReports.find(r => r.id === formData.reportId);
-              if (selected) {
-                return (
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600">Statut actuel du signalement :</span>
-                    <StatusBadge status={selected.status} />
-                  </div>
-                );
-              }
+              if (selected) return (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-600">Statut :</span>
+                  <StatusBadge status={selected.status} />
+                </div>
+              );
               return null;
             })()}
           </div>
 
+          {/* Titre */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Titre de la mission *</label>
-            <input
-              type="text"
-              required
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all text-sm outline-none"
-              placeholder="Ex: Curage des caniveaux Secteur Nord"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            />
+            <input type="text" required className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none" placeholder="Ex: Curage des caniveaux Secteur Nord" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
           </div>
 
+          {/* Type + Priorité */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-              <select
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none"
-                value={formData.missionType}
-                onChange={(e) => setFormData({ ...formData, missionType: e.target.value as MissionType })}
-              >
-                {Object.values(MissionType).map((type) => (
-                  <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
-                ))}
+              <select className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none" value={formData.missionType} onChange={(e) => setFormData({ ...formData, missionType: e.target.value as MissionType })}>
+                {Object.values(MissionType).map((type) => (<option key={type} value={type}>{type.replace(/_/g, ' ')}</option>))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Priorité *</label>
-              <select
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none"
-                value={formData.priorityLevel}
-                onChange={(e) => setFormData({ ...formData, priorityLevel: e.target.value as PriorityLevel })}
-              >
-                {Object.values(PriorityLevel).map((prio) => (
-                  <option key={prio} value={prio}>{prio}</option>
-                ))}
+              <select className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none" value={formData.priorityLevel} onChange={(e) => setFormData({ ...formData, priorityLevel: e.target.value as PriorityLevel })}>
+                {Object.values(PriorityLevel).map((prio) => (<option key={prio} value={prio}>{prio}</option>))}
               </select>
             </div>
           </div>
 
+          {/* Service assigné (DST / SGDS) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Assigner à un service</label>
+            <select
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-purple-500 transition-all text-sm outline-none"
+              value={formData.assignedService || ""}
+              onChange={(e) => setFormData({ ...formData, assignedService: (e.target.value as 'dst' | 'sgds') || undefined })}
+            >
+              <option value="">Aucun service spécifique</option>
+              <option value="dst">DST — Services Techniques (voirie, ouvrages)</option>
+              <option value="sgds">SGDS — Salubrité & Déchets</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Le service choisi sera responsable du suivi de cette mission.</p>
+          </div>
+
+          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all text-sm outline-none min-h-[80px] resize-y"
-              placeholder="Détails, objectifs et consignes pour l'équipe..."
-              value={formData.description || ""}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date limite d'exécution (SLA)</label>
-              <input
-                type="datetime-local"
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none"
-                value={formData.dueDate || ""}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Durée estimée (heures)</label>
-              <input
-                type="number"
-                min="0.5"
-                step="0.5"
-                placeholder="Ex: 4"
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none"
-                value={formData.estimatedHours ?? ""}
-                onChange={(e) => setFormData((prev: CreateMissionDTO) => ({ ...prev, estimatedHours: e.target.value ? parseFloat(e.target.value) : (undefined as any) }))}
-              />
-            </div>
-          </div>
-          
-          <div className="border border-gray-200 bg-gray-50/50 rounded-xl p-4">
-             <div className="flex items-center justify-between mb-2">
-               <label className="block text-sm font-medium text-gray-700">Assigner une Brigade</label>
-               {formData.municipalityId && (
-                 <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 font-medium">
-                   Filtré pour la zone sélectionnée
-                 </span>
-               )}
-             </div>
-             <p className="text-sm text-emerald-600/80 mb-3">L'assignation permet à l'équipe de voir la mission sur l'app mobile.</p>
-             <select
-                className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white focus:border-emerald-500 transition-all text-sm outline-none"
-                value={formData.assignedTeamId || ""}
-                onChange={(e) => setFormData({ ...formData, assignedTeamId: e.target.value || undefined })}
-              >
-                <option value=""> Assigner plus tard (Brouillon) </option>
-                {allTeams.length === 0 ? (
-                  <option disabled value="">Aucune brigade disponible (reconnectez-vous)</option>
-                ) : (
-                  availableTeams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))
-                )}
-              </select>
+            <textarea className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none min-h-[80px] resize-y" placeholder="Détails, objectifs et consignes..." value={formData.description || ""} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
           </div>
 
+          {/* Date + Durée */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date limite (SLA)</label>
+              <input type="datetime-local" className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none" value={formData.dueDate || ""} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Durée estimée (h)</label>
+              <input type="number" min="0.5" step="0.5" placeholder="Ex: 4" className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all text-sm outline-none" value={formData.estimatedHours ?? ""} onChange={(e) => setFormData((prev: CreateMissionDTO) => ({ ...prev, estimatedHours: e.target.value ? parseFloat(e.target.value) : (undefined as any) }))} />
+            </div>
+          </div>
+
+          {/* Brigade / Organisation */}
+          <div className="border border-gray-200 bg-gray-50/50 rounded-xl p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Assigner une organisation : SGDS, DSTS(Mairie), SBEE, etc</label>
+             <option value="">Assigner plus tard (Brouillon)</option>
+             <select
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-purple-500 transition-all text-sm outline-none"
+              value={formData.assignedService || ""}
+              onChange={(e) => setFormData({ ...formData, assignedService: (e.target.value as 'dst' | 'sgds') || undefined })}
+            >
+               <option value="">Aucun service spécifique</option>
+              <option value="dst">DST — Services Techniques (voirie, ouvrages)</option>
+              <option value="sgds">SGDS — Salubrité & Déchets</option>
+            </select>
+          </div>
+
+          {/* Submit */}
           <div className="pt-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !formData.reportId}
-              className="px-6 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
+            <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">Annuler</button>
+            <button type="submit" disabled={loading || !formData.reportId} className="px-6 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 transition-colors disabled:opacity-50 flex items-center gap-2">
               {loading && <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
               <span>{loading ? "Création..." : "Créer la mission"}</span>
             </button>

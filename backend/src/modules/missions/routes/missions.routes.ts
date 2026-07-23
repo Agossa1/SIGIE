@@ -17,8 +17,14 @@ export const missionsRouter = (db: PostgresDatabase): Router => {
     router.patch('/:id/status', (req: Request, res: Response, next: NextFunction) => module.services.updateStatus.controller.handle(req, res, next));
 
     // Assignation + Rapports
-    router.post('/:id/assignments', requireRole(['super_admin', 'platform_admin']), (req: Request, res: Response, next: NextFunction) => module.services.assign.controller.handle(req, res, next));
+    router.post('/:id/assignments', requireRole(['super_admin', 'platform_admin', 'dst_manager', 'sgds_manager', 'supervisor']), (req: Request, res: Response, next: NextFunction) => module.services.assign.controller.handle(req, res, next));
     router.post('/:id/reports', (req: Request, res: Response, next: NextFunction) => module.services.report.controller.handle(req, res, next));
+
+    // Pipeline : Créer une mission depuis un signalement
+    router.post('/from-report/:reportId', requireRole(['super_admin', 'platform_admin', 'dst_manager', 'sgds_manager', 'supervisor']), (req: Request, res: Response, next: NextFunction) => module.services.fromReport.controller.handle(req, res, next));
+
+    // Pipeline : Validation finale de la mission par DST/SGDS
+    router.patch('/:id/validate', requireRole(['super_admin', 'platform_admin', 'dst_manager', 'sgds_manager']), (req: Request, res: Response, next: NextFunction) => module.services.validate.controller.handle(req, res, next));
 
     return router;
 };
